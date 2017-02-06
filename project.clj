@@ -11,6 +11,7 @@
   :ring {:handler datemo.handler/app
          :nrepl {:start? true
                  :port 9998}}
+  :test-paths ["test"]
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.0"]]}})
