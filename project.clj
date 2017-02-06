@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [ring/ring-core "1.5.1"]
                  [ring/ring-jetty-adapter "1.5.1"]
+                 [ring/ring-defaults "0.2.3"]
                  [compojure "1.5.2"]]
   :plugins [[lein-ring "0.11.0"]]
   :ring {:handler datemo.handler/app
