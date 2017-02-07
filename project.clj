@@ -4,9 +4,11 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
+                 [cheshire "5.7.0"]
                  [ring/ring-core "1.5.1"]
                  [ring/ring-jetty-adapter "1.5.1"]
                  [ring/ring-defaults "0.2.3"]
+                 [ring/ring-json "0.4.0"]
                  [compojure "1.5.2"]]
   :plugins [[lein-ring "0.11.0"]]
   :ring {:handler datemo.handler/app
