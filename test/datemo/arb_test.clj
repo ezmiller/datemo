@@ -1,47 +1,39 @@
 (ns datemo.arb-test
-  (:require [markdown.core :refer [md-to-html-string]])
+  (:require [markdown.core :refer [md-to-html-string]]
+            [clojure.pprint :refer [pprint]])
   (:use clojure.test
         hiccup.core
         datemo.arb))
 
+(defn build-arb [hiccup-nodes]
+  (loop [nodes hiccup-nodes
+         arb-body [:arb {:original-tag :body}]]
+    (if (= 1 (count nodes))
+      [:arb {:original-tag :html}
+         [:arb {:original-tag :head} nil]
+         (conj arb-body (first nodes))]
+      (recur (next nodes) (conj arb-body (first nodes))))))
+
 (deftest test-arb
   (testing "html->arb"
-    ;; these two tests need to be adapted to full document output
-    ;; that comes from hickory when using the parse instead of 
-    ;; parse-fragment method. need to decide which is  better to use.
     (is (=
          (html->arb (html [:div]))
-         [:arb {:original-tag :html}
-          [:arb {:original-tag :head} nil]
-          [:arb {:original-tag :body}
-           [:arb {:original-tag :div} nil]]]))
+         (build-arb [[:arb {:original-tag :div} nil]])))
     (is (=
          (html->arb (html [:div {} "Text"]))
-         [:arb {:original-tag :html}
-          [:arb {:original-tag :head} nil]
-          [:arb {:original-tag :body}
-           [:arb {:original-tag :div} "Text"]]]))
+         (build-arb [[:arb {:original-tag :div} "Text"]])))
     (is (=
          (html->arb (html [:div "A"] [:div "B"]))
-         [:arb {:original-tag :html}
-          [:arb {:original-tag :head} nil]
-          [:arb {:original-tag :body}
-           [:arb {:original-tag :div} "A"]
-           [:arb {:original-tag :div} "B"]]]))
+         (build-arb [[:arb {:original-tag :div} "A"]
+                     [:arb {:original-tag :div} "B"]])))
     (is (=
          (html->arb (html [:h1 "Section"] [:p "This is a paragraph."]))
-         [:arb {:original-tag :html}
-          [:arb {:original-tag :head} nil]
-          [:arb {:original-tag :body}
-           [:arb {:original-tag :h1} "Section"]
-           [:arb {:original-tag :p} "This is a paragraph."]]]))
+         (build-arb [[:arb {:original-tag :h1} "Section"]
+                     [:arb {:original-tag :p} "This is a paragraph."]])))
     (is (= (html->arb (html [:p "Paragraph with " [:strong "bold"] " text."]))
-           [:arb {:original-tag :html}
-            [:arb {:original-tag :head} nil]
-            [:arb {:original-tag :body}
-             [:arb {:original-tag :p}
-              "Paragraph with "
-              [:arb {:original-tag :strong} "bold"]
-              " text."]]]))))
+           (build-arb [[:arb {:original-tag :p}
+                       "Paragraph with "
+                       [:arb {:original-tag :strong} "bold"]
+                       " text."]])))))
 
 
