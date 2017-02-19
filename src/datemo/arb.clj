@@ -9,7 +9,7 @@
   (if (string? (first hiccup))
     (first hiccup)
     (let [[tag attrs & rest] (first hiccup)
-          rest-count (count rest)]
+           rest-count (count rest)]
       (if (or (= 0 rest-count) (and (= 1 rest-count) (string? (first rest))))
         [:arb {:original-tag tag} (first rest)]
         (loop [arb [:arb {:original-tag tag}]
