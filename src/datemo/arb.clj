@@ -2,8 +2,12 @@
   (:require [clojure.pprint :refer [pprint]])
   (:use hickory.core))
 
-(defn html->hiccup [html]
-  (as-hiccup (parse html)))
+(defn html->hiccup
+  ([html] (as-hiccup (parse html)))
+  ([html as-fragment]
+   (if (false? as-fragment)
+     (html->hiccup html)
+     (map as-hiccup (parse-fragment html)))))
 
 (defn hiccup->arb [hiccup]
   (if (string? (first hiccup))
@@ -19,5 +23,12 @@
             (recur (conj arb (hiccup->arb (list (first forms))))
                    (next forms))))))))
 
-(defn html->arb [html]
-  (hiccup->arb (html->hiccup html)))
+(defn html->arb
+  ([html] (html->arb html false))
+  ([html as-fragment]
+   (if (false? as-fragment)
+    (hiccup->arb (html->hiccup html)))
+    (hiccup->arb (html->hiccup html as-fragment))))
+
+(defn arb->tx [arb]
+  arb)
