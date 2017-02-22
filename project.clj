@@ -5,6 +5,9 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :main datemo.core
   :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/core.async "0.2.395"]
+                 [com.datomic/clj-client "0.8.606"]
+                 [com.datomic/datomic-pro "0.9.5544"]
                  [cheshire "5.7.0"]
                  [ring/ring-core "1.5.1"]
                  [ring/ring-jetty-adapter "1.5.1"]
