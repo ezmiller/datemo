@@ -3,6 +3,7 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :main datemo.core
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [cheshire "5.7.0"]
                  [ring/ring-core "1.5.1"]
