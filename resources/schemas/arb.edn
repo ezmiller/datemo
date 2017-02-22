@@ -32,23 +32,40 @@
 ;;
 ;; </f:arb>
 
-[{:db/ident         :arb/title
-  :db/unique        :db.unique/identity
-  :db/valueType     :db.type/string
-  :db/cardinality   :db.cardinality/one
-  :db/fulltext      true
-  :db/index         true}
- {:db/ident         :arb/description
-  :db/unique        :db.unique/identity
-  :db/valueType     :db.type/string
-  :db/cardinality   :db.cardinality/one}
- {:db/ident         :arb/content
-  :db/unique        :db.unique/identity
-  :db/valueType     :db.type/ref
-  :db/isComponent   true
-  :db/cardinality   :db.cardinality/many}
- {:db/ident         :arbs
-  :db/unique        :db.unique/identity
-  :db/valueType     :db.type/ref
-  :db/cardinality   :db.cardinality/many
-  :db/isComponent   true}]
+;; [{:db/ident         :arb/title
+;;   :db/unique        :db.unique/identity
+;;   :db/valueType     :db.type/string
+;;   :db/cardinality   :db.cardinality/one
+;;   :db/fulltext      true
+;;   :db/index         true}
+;;  {:db/ident         :arb/description
+;;   :db/unique        :db.unique/identity
+;;   :db/valueType     :db.type/string
+;;   :db/cardinality   :db.cardinality/one}
+;;  {:db/ident         :arb/content
+;;   :db/unique        :db.unique/identity
+;;   :db/valueType     :db.type/ref
+;;   :db/isComponent   true
+;;   :db/cardinality   :db.cardinality/many}
+;;  {:db/ident         :arbs
+;;   :db/unique        :db.unique/identity
+;;   :db/valueType     :db.type/ref
+;;   :db/cardinality   :db.cardinality/many
+;;   :db/isComponent   true}]
+
+[{:db/ident            :content/text
+  :db/valueType        :db.type/string
+  :db/cardinality      :db.cardinality/one
+  :db/index            true}
+ {:db/ident            :metadata/html-tag
+  :db/valueType        :db.type/keyword
+  :db/cardinality      :db.cardinality/one}
+ {:db/ident            :arb/value
+  :db/unique           :db.unique/identity
+  :db/valueType        :db.type/ref
+  :db/cardinality      :db.cardinality/many
+  :db/isComponent      true}
+ {:db/ident            :arb/metadata
+  :db/valueType        :db.type/ref
+  :db/cardinality      :db.cardinality/many
+  :db/isComponent      true}]
