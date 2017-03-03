@@ -16,7 +16,8 @@
                  [compojure "1.5.2"]
                  [hickory "0.7.0"]
                  [markdown-clj "0.9.94"]]
-  :plugins [[lein-ring "0.11.0"]]
+  :plugins [[lein-ring "0.11.0"]
+            [com.jakemccrary/lein-test-refresh "0.18.1"]]
   :ring {:handler datemo.handler/app
          :nrepl {:start? true
                  :port 9998}}
