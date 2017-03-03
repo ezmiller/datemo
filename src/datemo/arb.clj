@@ -31,4 +31,13 @@
     (hiccup->arb (html->hiccup html as-fragment))))
 
 (defn arb->tx [arb]
-  arb)
+  (let [[arb-tag metadata & value] arb]
+    (if (string? (first value))
+      {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
+       :arb/value [{:content/text (first value)}]}
+      (loop [values []
+             items value]
+        (if (= 1 (count items))
+          {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
+           :arb/value (conj values (arb->tx (first items)))}
+          (recur (conj values (arb->tx (first items))) (next items)))))))

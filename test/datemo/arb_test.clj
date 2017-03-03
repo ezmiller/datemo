@@ -34,6 +34,20 @@
            (build-arb [[:arb {:original-tag :p}
                        "Paragraph with "
                        [:arb {:original-tag :strong} "bold"]
-                       " text."]])))))
+                       " text."]]))))
+  (testing "arb->tx"
+    (is (=
+         {:arb/metadata [{:metadata/html-tag :div}]
+          :arb/value [{:content/text "Text"}]}
+         (arb->tx (hiccup->arb (list [:div {} "Text"])))))
+    (is (=
+         {:arb/metadata [{:metadata/html-tag :div}]
+          :arb/value [{:arb/metadata [{:metadata/html-tag :h1}]
+                       :arb/value [{:content/text "Section Title"}]}
+                      {:arb/metadata [{:metadata/html-tag :p}]
+                       :arb/value [{:content/text "paragraph"}]}]}
+         (arb->tx (hiccup->arb (list [:div {}
+                                      [:h1 {} "Section Title"]
+                                      [:p {} "paragraph"]])))))))
 
 
