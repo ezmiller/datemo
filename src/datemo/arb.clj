@@ -41,3 +41,16 @@
           {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
            :arb/value (conj values (arb->tx (first items)))}
           (recur (conj values (arb->tx (first items))) (next items)))))))
+
+(defn tx->arb [tx]
+  (let [{metadata :arb/metadata value :arb/value} tx]
+    (if (and (= 1 (count value)) (not (nil? (:content/text (first value)))))
+      [:arb
+       {:original-tag (:metadata/html-tag (first metadata))}
+       (:content/text (first value))]
+      (loop [arbs [] items value]
+        (if (= 0 (count items))
+          (into
+            [:arb {:original-tag (:metadata/html-tag (first metadata))}]
+            arbs)
+          (recur (conj arbs (tx->arb (first items))) (next items)))))))

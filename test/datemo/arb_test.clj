@@ -56,6 +56,37 @@
                          :arb/value [{:content/text "paragraph"}]}]}
            (arb->tx (hiccup->arb (list [:div {}
                                         [:h1 {} "Section Title"]
-                                        [:p {} "paragraph"]]))))))))
+                                        [:p {} "paragraph"]])))))))
+
+  (testing "tx->arb"
+    (testing "with single node"
+      (is (=
+           [:arb {:original-tag :div} "text"]
+           (tx->arb
+             {:arb/metadata [{:metadata/html-tag :div}]
+              :arb/value [{:content/text "text"}]}))))
+
+    (testing "with single-level nested arb"
+      (is (=
+           [:arb
+            {:original-tag :div}
+            [:arb {:original-tag :p} "paragraph"]]
+           (tx->arb
+             {:arb/metadata [{:metadata/html-tag :div}]
+              :arb/value [{:arb/metadata [{:metadata/html-tag :p}]
+                           :arb/value [{:content/text "paragraph"}]}]}))))
+
+    (testing "with single-level nested arb with siblings"
+      (is (=
+           [:arb
+            {:original-tag :div}
+            [:arb {:original-tag :h1} "title"]
+            [:arb {:original-tag :p} "paragraph"]]
+           (tx->arb
+             {:arb/metadata [{:metadata/html-tag :div}]
+              :arb/value [{:arb/metadata [{:metadata/html-tag :h1}]
+                           :arb/value [{:content/text "title"}]}
+                          {:arb/metadata [{:metadata/html-tag :p}]
+                           :arb/value [{:content/text "paragraph"}]}]}))))))
 
 
