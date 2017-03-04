@@ -14,40 +14,43 @@
          (conj arb-body (first nodes))]
       (recur (next nodes) (conj arb-body (first nodes))))))
 
-(deftest test-arb
+(deftest arb-tests
   (testing "html->arb"
-    (is (=
-         (html->arb (html [:div]))
-         (build-arb [[:arb {:original-tag :div} nil]])))
-    (is (=
-         (html->arb (html [:div {} "Text"]))
-         (build-arb [[:arb {:original-tag :div} "Text"]])))
-    (is (=
-         (html->arb (html [:div "A"] [:div "B"]))
-         (build-arb [[:arb {:original-tag :div} "A"]
-                     [:arb {:original-tag :div} "B"]])))
-    (is (=
-         (html->arb (html [:h1 "Section"] [:p "This is a paragraph."]))
-         (build-arb [[:arb {:original-tag :h1} "Section"]
-                     [:arb {:original-tag :p} "This is a paragraph."]])))
-    (is (= (html->arb (html [:p "Paragraph with " [:strong "bold"] " text."]))
-           (build-arb [[:arb {:original-tag :p}
-                       "Paragraph with "
-                       [:arb {:original-tag :strong} "bold"]
-                       " text."]]))))
+    (testing "with empty div"
+      (is (=
+           (html->arb (html [:div]))
+           (build-arb [[:arb {:original-tag :div} nil]]))))
+    (testing "with div with text"
+      (is (=
+           (html->arb (html [:div {} "Text"]))
+           (build-arb [[:arb {:original-tag :div} "Text"]]))))
+    (testing "with two sibling tags"
+      (is (=
+           (html->arb (html [:div "A"] [:div "B"]))
+           (build-arb [[:arb {:original-tag :div} "A"]
+                       [:arb {:original-tag :div} "B"]]))))
+    (testing "with nested tag in middle of text"
+      (is (= (html->arb (html [:p "Paragraph with " [:strong "bold"] " text."]))
+             (build-arb [[:arb {:original-tag :p}
+                         "Paragraph with "
+                         [:arb {:original-tag :strong} "bold"]
+                         " text."]])))))
+
   (testing "arb->tx"
-    (is (=
-         {:arb/metadata [{:metadata/html-tag :div}]
-          :arb/value [{:content/text "Text"}]}
-         (arb->tx (hiccup->arb (list [:div {} "Text"])))))
-    (is (=
-         {:arb/metadata [{:metadata/html-tag :div}]
-          :arb/value [{:arb/metadata [{:metadata/html-tag :h1}]
-                       :arb/value [{:content/text "Section Title"}]}
-                      {:arb/metadata [{:metadata/html-tag :p}]
-                       :arb/value [{:content/text "paragraph"}]}]}
-         (arb->tx (hiccup->arb (list [:div {}
-                                      [:h1 {} "Section Title"]
-                                      [:p {} "paragraph"]])))))))
+    (testing "with single arb node"
+      (is (=
+           {:arb/metadata [{:metadata/html-tag :div}]
+            :arb/value [{:content/text "Text"}]}
+           (arb->tx (hiccup->arb (list [:div {} "Text"]))))))
+    (testing "arb with nested arb"
+      (is (=
+           {:arb/metadata [{:metadata/html-tag :div}]
+            :arb/value [{:arb/metadata [{:metadata/html-tag :h1}]
+                         :arb/value [{:content/text "Section Title"}]}
+                        {:arb/metadata [{:metadata/html-tag :p}]
+                         :arb/value [{:content/text "paragraph"}]}]}
+           (arb->tx (hiccup->arb (list [:div {}
+                                        [:h1 {} "Section Title"]
+                                        [:p {} "paragraph"]]))))))))
 
 
