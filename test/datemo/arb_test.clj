@@ -29,6 +29,11 @@
            (html->arb (html [:div "A"] [:div "B"]))
            (build-arb [[:arb {:original-tag :div} "A"]
                        [:arb {:original-tag :div} "B"]]))))
+    (testing "nested tags"
+      (is (=
+           (build-arb[[:arb {:original-tag :div} "parent"
+                       [:arb {:original-tag :p} "child"]]])
+           (html->arb (html [:div "parent" [:p "child"]])))))
     (testing "with nested tag in middle of text"
       (is (= (html->arb (html [:p "Paragraph with " [:strong "bold"] " text."]))
              (build-arb [[:arb {:original-tag :p}
