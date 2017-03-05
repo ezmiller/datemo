@@ -24,11 +24,12 @@
       (is (=
            [:arb {:original-tag :div} "Text"]
            (html->arb (html [:div {} "Text"])))))
-    (testing "with two sibling tags"
+    (testing "parent with two siblings"
       (is (=
-           (build-arb [[:arb {:original-tag :div} "A"]
-                       [:arb {:original-tag :div} "B"]])
-           (html->arb (html [:div "A"] [:div "B"]) false))))
+           [:arb {:original-tag :div}
+            [:arb {:original-tag :div} "A"]
+            [:arb {:original-tag :div} "B"]]
+           (html->arb (html [:div {} [:div "A"] [:div "B"]])))))
     (testing "nested tags"
       (is (=
            [:arb {:original-tag :div} "parent"

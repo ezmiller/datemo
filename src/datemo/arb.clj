@@ -7,21 +7,18 @@
   ([html as-fragment]
    (if (false? as-fragment)
      (html->hiccup html)
-     (map as-hiccup (parse-fragment html)))))
+     (first (map as-hiccup (parse-fragment html))))))
 
 (defn hiccup->arb [hiccup]
-  (if (string? (first hiccup))
-    (first hiccup)
-    (let [[tag attrs & rest] (first hiccup)
-           rest-count (count rest)]
-      (if (or (= 0 rest-count) (and (= 1 rest-count) (string? (first rest))))
-        [:arb {:original-tag tag} (first rest)]
-        (loop [arb [:arb {:original-tag tag}]
-               forms rest]
-          (if (= 1 (count forms))
-            (conj arb (hiccup->arb forms))
-            (recur (conj arb (hiccup->arb (list (first forms))))
-                   (next forms))))))))
+  (let [[tag attrs & value] hiccup]
+    (if (or (nil? value) (and (= 1 (count value) (string? (first value)))))
+      [:arb {:original-tag tag} (first value)]
+      (loop [values [], items value]
+        (if (= 0 (count items))
+          (into [:arb {:original-tag tag}] values)
+          (if (string? (first items))
+            (recur (conj values (first items)) (next items))
+            (recur (conj values (hiccup->arb (first items))) (next items))))))))
 
 (defn html->arb
   ([html] (html->arb html true))
