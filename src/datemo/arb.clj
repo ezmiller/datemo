@@ -32,7 +32,7 @@
 
 (defn arb->tx [arb]
   (let [[arb-tag metadata & value] arb]
-    (if (string? (first value))
+    (if (or (string? (first value)) (nil? (first value)))
       {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
        :arb/value [{:content/text (first value)}]}
       (loop [values []

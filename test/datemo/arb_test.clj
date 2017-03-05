@@ -42,7 +42,12 @@
                          " text."]))))
 
   (testing "arb->tx"
-    (testing "with single arb node"
+    (testing "single arb node with nil value"
+      (is (=
+           {:arb/metadata [{:metadata/html-tag :div}]
+            :arb/value [{:content/text nil}]}
+           (arb->tx [:arb {:original-tag :div} nil]))))
+    (testing "single arb node with text value"
       (is (=
            {:arb/metadata [{:metadata/html-tag :div}]
             :arb/value [{:content/text "Text"}]}
