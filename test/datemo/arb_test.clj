@@ -87,7 +87,7 @@
               :arb/value [{:arb/metadata [{:metadata/html-tag :h1}]
                            :arb/value [{:content/text "title"}]}
                           {:arb/metadata [{:metadata/html-tag :p}]
-                           :arb/value [{:content/text "paragraph"}]}]}))))))
+                           :arb/value [{:content/text "paragraph"}]}]})))))
 
   (testing "arb->hiccup"
     (testing "single node"
