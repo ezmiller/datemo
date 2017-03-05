@@ -48,7 +48,7 @@
       [:arb
        {:original-tag (:metadata/html-tag (first metadata))}
        (:content/text (first value))]
-      (loop [arbs [] items value]
+      (loop [arbs [], items value]
         (if (= 0 (count items))
           (into
             [:arb {:original-tag (:metadata/html-tag (first metadata))}]
