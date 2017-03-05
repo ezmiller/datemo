@@ -7,7 +7,10 @@
   ([html as-fragment]
    (if (false? as-fragment)
      (html->hiccup html)
-     (first (map as-hiccup (parse-fragment html))))))
+     (let [result (map as-hiccup (parse-fragment html))]
+       (if (not= 1 (count result))
+         (into [:div {}] result)
+         (first result))))))
 
 (defn hiccup->arb [hiccup]
   (let [[tag attrs & value] hiccup]

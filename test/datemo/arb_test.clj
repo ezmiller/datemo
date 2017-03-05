@@ -15,6 +15,12 @@
       (recur (next nodes) (conj arb-body (first nodes))))))
 
 (deftest arb-tests
+  (testing "html->hiccup"
+    (testing "given two sibling tags, will wrap in div"
+      (is (=
+           [:div {} [:div {} "A"] [:div {} "B"]]
+           (html->hiccup "<div>A</div><div>B</div>" true)))))
+
   (testing "html->arb"
     (testing "with empty div"
       (is (=
