@@ -19,27 +19,27 @@
     (testing "with empty div"
       (is (=
            (html->arb (html [:div]))
-           (build-arb [[:arb {:original-tag :div} nil]]))))
+           [:arb {:original-tag :div} nil])))
     (testing "with div with text"
       (is (=
            (html->arb (html [:div {} "Text"]))
-           (build-arb [[:arb {:original-tag :div} "Text"]]))))
+           [:arb {:original-tag :div} "Text"])))
     (testing "with two sibling tags"
       (is (=
-           (html->arb (html [:div "A"] [:div "B"]))
+           (html->arb (html [:div "A"] [:div "B"]) false)
            (build-arb [[:arb {:original-tag :div} "A"]
                        [:arb {:original-tag :div} "B"]]))))
     (testing "nested tags"
       (is (=
-           (build-arb[[:arb {:original-tag :div} "parent"
-                       [:arb {:original-tag :p} "child"]]])
+           [:arb {:original-tag :div} "parent"
+            [:arb {:original-tag :p} "child"]]
            (html->arb (html [:div "parent" [:p "child"]])))))
     (testing "with nested tag in middle of text"
       (is (= (html->arb (html [:p "Paragraph with " [:strong "bold"] " text."]))
-             (build-arb [[:arb {:original-tag :p}
+             [:arb {:original-tag :p}
                          "Paragraph with "
                          [:arb {:original-tag :strong} "bold"]
-                         " text."]])))))
+                         " text."]))))
 
   (testing "arb->tx"
     (testing "with single arb node"

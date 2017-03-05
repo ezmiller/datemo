@@ -24,7 +24,7 @@
                    (next forms))))))))
 
 (defn html->arb
-  ([html] (html->arb html false))
+  ([html] (html->arb html true))
   ([html as-fragment]
    (if (false? as-fragment)
     (hiccup->arb (html->hiccup html)))
