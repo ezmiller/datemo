@@ -55,7 +55,7 @@
       (is (=
            {:arb/metadata [{:metadata/html-tag :div}]
             :arb/value [{:content/text "Text"}]}
-           (arb->tx (hiccup->arb (list [:div {} "Text"]))))))
+           (arb->tx [:arb {:original-tag :div} "Text"]))))
     (testing "arb with nested arb"
       (is (=
            {:arb/metadata [{:metadata/html-tag :div}]
@@ -63,16 +63,9 @@
                          :arb/value [{:content/text "Section Title"}]}
                         {:arb/metadata [{:metadata/html-tag :p}]
                          :arb/value [{:content/text "paragraph"}]}]}
-           (arb->tx (hiccup->arb (list [:div {}
-                                        [:h1 {} "Section Title"]
-                                        [:p {} "paragraph"]])))))))
-
-  (testing "html->tx"
-    (testing "single tag"
-      (is (=
-           {:arb/metadata [{:metadata/html-tag :div}]
-            :arb/value [{:content/text "text"}]}
-           (html->tx "<div>text</div>")))))
+           (arb->tx [:arb {:original-tag :div}
+                     [:arb {:original-tag :h1} "Section Title"]
+                     [:arb {:original-tag :p} "paragraph"]])))))
 
   (testing "tx->arb"
     (testing "with single node"
