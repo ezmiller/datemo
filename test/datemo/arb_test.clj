@@ -89,4 +89,47 @@
                           {:arb/metadata [{:metadata/html-tag :p}]
                            :arb/value [{:content/text "paragraph"}]}]}))))))
 
+  (testing "arb->hiccup"
+    (testing "single node"
+      (is (=
+           [:div {} "text"]
+           (arb->hiccup [:arb {:original-tag :div} "text"]))))
 
+    (testing "with single branch"
+      (is (=
+           [:div {}
+            [:p {} "paragraph"]]
+           (arb->hiccup [:arb
+                         {:original-tag :div}
+                         [:arb {:original-tag :p} "paragraph"]]))))
+
+    (testing "two branches"
+      (is (=
+           [:div {}
+            [:p {} "paragraph1"]
+            [:p {} "paragraph2"]]
+           (arb->hiccup [:arb
+                         {:original-tag :div}
+                         [:arb {:original-tag :p} "paragraph1"]
+                         [:arb {:original-tag :p} "paragraph2"]]))))
+
+    (testing "single branch 2-levels deep"
+      (is (=
+           [:div {}
+            [:div {}
+             [:p {} "paragraph"]]]
+           (arb->hiccup [:arb
+                         {:original-tag :div}
+                         [:arb {:original-tag :div}
+                          [:arb {:original-tag :p} "paragraph"]]]))))
+
+    (testing "single branches 1-level deep with nodes of different type"
+      (is (=
+           [:div {}
+            [:p {} "paragraph" [:strong {} "with bold"] "in the middle"]]
+           (arb->hiccup [:arb
+                         {:original-tag :div}
+                         [:arb {:original-tag :p}
+                          "paragraph"
+                          [:arb {:original-tag :strong} "with bold"]
+                          "in the middle"]]))))))

@@ -54,3 +54,14 @@
             [:arb {:original-tag (:metadata/html-tag (first metadata))}]
             arbs)
           (recur (conj arbs (tx->arb (first items))) (next items)))))))
+
+(defn arb->hiccup [arb]
+  (let [[arb-tag metadata & value] arb]
+    (if (and (string? (first value)) (= 1 (count value)))
+      [(:original-tag metadata) {} (first value)]
+      (loop [hiccups [], items value]
+        (if (= 0 (count items))
+          (into [(:original-tag metadata) {}] hiccups)
+          (if (string? (first items))
+            (recur (conj hiccups (first items)) (next items))
+            (recur (conj hiccups (arb->hiccup (first items))) (next items))))))))
