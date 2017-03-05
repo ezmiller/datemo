@@ -63,6 +63,13 @@
                                         [:h1 {} "Section Title"]
                                         [:p {} "paragraph"]])))))))
 
+  (testing "html->tx"
+    (testing "single tag"
+      (is (=
+           {:arb/metadata [{:metadata/html-tag :div}]
+            :arb/value [{:content/text "text"}]}
+           (html->tx "<div>text</div>")))))
+
   (testing "tx->arb"
     (testing "with single node"
       (is (=

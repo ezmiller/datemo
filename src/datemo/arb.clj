@@ -42,6 +42,9 @@
            :arb/value (conj values (arb->tx (first items)))}
           (recur (conj values (arb->tx (first items))) (next items)))))))
 
+(defn html->tx [html]
+  (-> html (html->arb) (arb->tx)))
+
 (defn tx->arb [tx]
   (let [{metadata :arb/metadata value :arb/value} tx]
     (if (and (= 1 (count value)) (not (nil? (:content/text (first value)))))
