@@ -18,28 +18,31 @@
   (testing "html->arb"
     (testing "with empty div"
       (is (=
-           (html->arb (html [:div]))
-           [:arb {:original-tag :div} nil])))
+           [:arb {:original-tag :div} nil]
+           (html->arb (html [:div])))))
     (testing "with div with text"
       (is (=
-           (html->arb (html [:div {} "Text"]))
-           [:arb {:original-tag :div} "Text"])))
+           [:arb {:original-tag :div} "Text"]
+           (html->arb (html [:div {} "Text"])))))
     (testing "with two sibling tags"
       (is (=
-           (html->arb (html [:div "A"] [:div "B"]) false)
            (build-arb [[:arb {:original-tag :div} "A"]
-                       [:arb {:original-tag :div} "B"]]))))
+                       [:arb {:original-tag :div} "B"]])
+           (html->arb (html [:div "A"] [:div "B"]) false))))
     (testing "nested tags"
       (is (=
            [:arb {:original-tag :div} "parent"
             [:arb {:original-tag :p} "child"]]
            (html->arb (html [:div "parent" [:p "child"]])))))
     (testing "with nested tag in middle of text"
-      (is (= (html->arb (html [:p "Paragraph with " [:strong "bold"] " text."]))
-             [:arb {:original-tag :p}
-                         "Paragraph with "
-                         [:arb {:original-tag :strong} "bold"]
-                         " text."]))))
+      (is (=
+            [:arb
+             {:original-tag :p}
+             "Paragraph with "
+             [:arb {:original-tag :strong} "bold"]
+             " text."]
+            (html->arb
+              (html [:p "Paragraph with " [:strong "bold"] " text."]))))))
 
   (testing "arb->tx"
     (testing "single arb node with nil value"
