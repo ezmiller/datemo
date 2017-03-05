@@ -65,7 +65,6 @@
            (tx->arb
              {:arb/metadata [{:metadata/html-tag :div}]
               :arb/value [{:content/text "text"}]}))))
-
     (testing "with single-level nested arb"
       (is (=
            [:arb
@@ -75,7 +74,6 @@
              {:arb/metadata [{:metadata/html-tag :div}]
               :arb/value [{:arb/metadata [{:metadata/html-tag :p}]
                            :arb/value [{:content/text "paragraph"}]}]}))))
-
     (testing "with single-level nested arb with siblings"
       (is (=
            [:arb
@@ -94,7 +92,6 @@
       (is (=
            [:div {} "text"]
            (arb->hiccup [:arb {:original-tag :div} "text"]))))
-
     (testing "with single branch"
       (is (=
            [:div {}
@@ -102,7 +99,6 @@
            (arb->hiccup [:arb
                          {:original-tag :div}
                          [:arb {:original-tag :p} "paragraph"]]))))
-
     (testing "two branches"
       (is (=
            [:div {}
@@ -112,7 +108,6 @@
                          {:original-tag :div}
                          [:arb {:original-tag :p} "paragraph1"]
                          [:arb {:original-tag :p} "paragraph2"]]))))
-
     (testing "single branch 2-levels deep"
       (is (=
            [:div {}
@@ -122,7 +117,6 @@
                          {:original-tag :div}
                          [:arb {:original-tag :div}
                           [:arb {:original-tag :p} "paragraph"]]]))))
-
     (testing "single branches 1-level deep with nodes of different type"
       (is (=
            [:div {}
