@@ -7,7 +7,7 @@
 
 (use '[clojure.pprint :refer [pprint]])
 
-(defn parse-response [response]
+(defn parse [response]
   (-> (:body response) (json/parse-string true)))
 
 (deftest test-app
@@ -21,15 +21,18 @@
     (def data
       (array-map :doc-string (md-to-html-string "# Title  \nParagraph")))
     (let [response (app (request :post "/documents" data))]
-      (is (= 200 (:status response)))
+      (is (= 201 (:status response)))
+      (is (= {"Content-Type" "application/hal+json; charset=utf-8"}
+             (:headers response)))
       (is (= "/documents/"
-             (-> (parse-response response)
+             (-> (parse response)
                  (:_links)
                  (->> (:self) (re-find #"/documents/")))))
-      (is (=
-           {:html "<div><h1>Title</h1><p>Paragraph</p></div>"}
-           (-> (parse-response response)
-               (:_embedded))))))
+      (is (= true (-> (parse response) (:_embedded) (contains? :id))))
+      (is (= "<div><h1>Title</h1><p>Paragraph</p></div>"
+             (-> (parse response)
+                 (:_embedded)
+                 (:html))))))
 
   (testing "not-found route"
     (let [response (app (request :get "/bogus/route"))]
