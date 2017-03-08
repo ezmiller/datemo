@@ -25,7 +25,7 @@
       (is (= "/documents/"
              (-> (parse-response response)
                  (:_links)
-                 (->> (:href) (re-find #"/documents/")))))
+                 (->> (:self) (re-find #"/documents/")))))
       (is (=
            {:html "<div><h1>Title</h1><p>Paragraph</p></div>"}
            (-> (parse-response response)

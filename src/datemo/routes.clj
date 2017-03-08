@@ -45,7 +45,7 @@
        [eid db-after] (save-arb-tx tx)
        tx-from-db (d/pull db-after '[*] eid)
        html (-> tx-from-db (tx->arb) (arb->hiccup) (html))]
-   {:body {:_links {:href (apply str "/documents/" (str eid))}
+   {:body {:_links {:self (apply str "/documents/" (str eid))}
            :_embedded {:html html}}}))
 
 (defroutes app-routes
