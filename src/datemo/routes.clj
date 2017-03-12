@@ -40,6 +40,10 @@
 (defn edn->clj [edn]
   (edn/read-string {:readers *data-readers*} (prn-str edn)))
 
+(defn get-doc [eid]
+  (let [doc-tx (d/pull (d/db conn) '[*] eid)
+        doc-html (tx->html doc-tx)]))
+
 (defn post-doc [doc-string]
  (let [tx (-> (html->tx doc-string) (add-tempid) (edn->clj))
        [eid db-after] (save-arb-tx tx)
