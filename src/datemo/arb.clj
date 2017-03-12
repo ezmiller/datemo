@@ -1,6 +1,7 @@
 (ns datemo.arb
   (:require [clojure.pprint :refer [pprint]])
-  (:use hickory.core))
+  (:use hickory.core
+        hiccup.core))
 
 (defn html->hiccup
   ([html] (as-hiccup (parse html)))
@@ -70,4 +71,4 @@
             (recur (conj hiccups (arb->hiccup (first items))) (next items))))))))
 
 (defn tx->html [tx]
-  (-> tx (tx->arb) (arb->hiccup)))
+  (-> tx (tx->arb) (arb->hiccup) (html)))
