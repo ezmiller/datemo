@@ -4,8 +4,7 @@
         datemo.arb)
   (:require [clojure.edn :as edn]
             [compojure.route :as route]
-            [compojure.handler :as handler]
-            [ring.middleware.json :refer [wrap-json-response]]
+            [ring.middleware.json :refer :all]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [datomic.api :as d]))
 
@@ -41,14 +40,20 @@
   (edn/read-string {:readers *data-readers*} (prn-str edn)))
 
 (defn get-doc [eid]
+  (pprint (type eid))
   (let [doc-tx (d/pull (d/db conn) '[*] eid)
-        doc-html (tx->html doc-tx)]))
+        doc-html (tx->html doc-tx)]
+    (pprint doc-tx)
+    {:status 200
+     :headers {"Content-Type" "application/hal+json; charset=utf-8"}
+     :body doc-html}))
 
 (defn post-doc [doc-string]
  (let [tx (-> (html->tx doc-string) (add-tempid) (edn->clj))
        [eid db-after] (save-arb-tx tx)
        tx-from-db (d/pull db-after '[*] eid)
        html (-> tx-from-db (tx->arb) (arb->hiccup) (html))]
+   (pprint (type eid))
    {:status 201
     :headers {"Content-Type" "application/hal+json; charset=utf-8"}
     :body {:_links {:self (apply str "/documents/" (str eid))}
@@ -57,11 +62,19 @@
 
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
-  (POST "/documents" [doc-string] (post-doc doc-string))
+  (POST "/documents" [body :as {body :body}] (post-doc (:doc-string body)))
+  (GET "/documents/:eid" [eid] (get-doc (bigint eid)))
   (route/not-found "Not found"))
+
+(defn wrap-with-logger [handler]
+  (fn [request]
+    (pprint request)
+    (handler request)))
 
 (def app
   (-> app-routes
+      (wrap-with-logger)
+      (wrap-json-body {:keywords? true})
       (wrap-json-response)
       (wrap-defaults api-defaults)))
 
