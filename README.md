@@ -1,6 +1,9 @@
 # datemo
 
-A Clojure library designed to ... well, that part is up to you.
+## ToDo:
+
+- [ ] Build GET /document/:id
+- [ ] Extract arb.clj to its own library.
 
 ## Getting Datomic Server Running
 
@@ -16,22 +19,16 @@ In order to get the db running, you need to run the following commands from the 
 1) Run transactor:
 
 ```
-/datomic/datomic-pro-0.9.5544/bin/transactor /path/to/transactor/config
+bin/transactor ~/datemo/resources/dev-transactor.properties
 ```
-
-2) Run peerserver:
-```
-bin/run -m datomic.peer-server -p 8998 -a datemo,datemo -d datemo,datomic:dev://localhost:4334/datemo
-``
 
 3) (optional) If you want the console:
 ```
 bin/console -p 8080 datemo datomic:dev://localhost:4334/datemo
 ```
 
-## License
+4) (optional) If you want to use the repl to access the db:
+```
+rlwrap bin/repl
+```
 
-Copyright © 2017 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
