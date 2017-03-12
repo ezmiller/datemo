@@ -68,7 +68,9 @@
           (into [(:original-tag metadata) {}] hiccups)
           (if (string? (first items))
             (recur (conj hiccups (first items)) (next items))
-            (recur (conj hiccups (arb->hiccup (first items))) (next items))))))))
+            (recur
+              (conj hiccups (arb->hiccup (first items)))
+              (next items))))))))
 
 (defn tx->html [tx]
   (-> tx (tx->arb) (arb->hiccup) (html)))
