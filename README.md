@@ -1,10 +1,5 @@
 # datemo
 
-## ToDo:
-
-- [ ] Build GET /document/:id
-- [ ] Extract arb.clj to its own library.
-
 ## Getting Datomic Server Running
 
 In order to run a simple database for experimental develpoment, where it isn't
