@@ -1,11 +1,11 @@
-(ns datemo.core
+(ns datemo.db
   (:import datomic.Util)
   (:require
     [datomic.api :as d]
     [clojure.java.io :as io]
     [clojure.pprint :as pp :refer (pprint)]))
 
-(def db-uri "datomic:dev://localhost:4334/datemo");
+(def db-uri "datomic:dev://localhost:4334/datemo")
 (def conn (d/connect db-uri))
 (def db (d/db conn))
 
@@ -26,7 +26,17 @@
              more)
       {:datoms n})))
 
-;; (def schema-tx (-> (io/resource "schemas/arb.edn")
-;;                    (read-all)
-;;                    (first)))
-;; (pprint (d/transact conn schema-tx))
+(defn load-schema
+  "Given a path string to a schema edn file, loads and returns."
+  [path-str]
+  (-> (io/resource path-str)
+      (read-all)
+      (first)))
+
+(defn install-schema
+  "Attempts to transact a schema. If sucessful, returns tx promise;
+   otherwise, error."
+  [schema-tx]
+  (let [tx (d/transact conn schema-tx)]
+    (try @tx (catch Exception e (.getMessage e))))
+
