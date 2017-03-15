@@ -3,11 +3,8 @@
   (:require
     [datomic.api :as d]
     [clojure.java.io :as io]
+    [environ.core :refer [env]]
     [clojure.pprint :as pp :refer (pprint)]))
-
-(def db-uri "datomic:dev://localhost:4334/datemo")
-(def conn (d/connect db-uri))
-(def db (d/db conn))
 
 (defn read-all
   "Read all forms in f, where f is any resource that can
@@ -36,7 +33,34 @@
 (defn install-schema
   "Attempts to transact a schema. If sucessful, returns tx promise;
    otherwise, error."
-  [schema-tx]
+  [schema-tx conn]
   (let [tx (d/transact conn schema-tx)]
-    (try @tx (catch Exception e (.getMessage e))))
+    (try @tx (catch Exception e (.getMessage e)))))
+
+(defn scratch-conn
+  "Create a connection to an anonymous, in-memory database."
+  []
+  (let [uri (str "datomic:mem://" (d/squuid))]
+    (d/delete-database uri)
+    (d/create-database uri)
+    (d/connect uri)))
+
+(defn setup-test-db []
+  (def conn (scratch-conn))
+  (-> (load-schema "schemas/arb.edn")
+      (install-schema conn))
+  conn)
+
+(defn connect
+  "Returns a connection object. If no db-uri provided, will return
+   a connection to an anonymous in-memory database."
+  ([] (setup-test-db))
+  ([db-uri]
+    (try
+      (d/connect db-uri)
+      (catch Exception e (.getMessage e)))))
+
+(def conn (connect))
+
+(defn db-now [] (d/db conn))
 

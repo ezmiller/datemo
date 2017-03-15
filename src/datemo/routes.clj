@@ -1,7 +1,8 @@
 (ns datemo.routes
   (:use compojure.core
         hiccup.core
-        datemo.arb)
+        datemo.arb
+        datemo.db)
   (:require [clojure.edn :as edn]
             [compojure.route :as route]
             [ring.middleware.json :refer :all]
@@ -10,17 +11,13 @@
 
 (require '[clojure.pprint :refer [pprint]])
 
-(def db-uri "datomic:dev://localhost:4334/datemo")
-(def conn (d/connect db-uri))
-(def db (d/db conn))
-
-(defn save-arb-tx [tx]
+(defn save-arb-tx
   "Transact and return entity id and reference to db in new state."
-  [conn tx]
+  [tx]
   (let [tempid (:db/id tx)
         post-tx @(d/transact conn [tx])
         db-after (:db-after post-tx)
-        eid (d/resolve-tempid db (:tempids post-tx) tempid)]
+        eid (d/resolve-tempid (db-now) (:tempids post-tx) tempid)]
     [eid db-after]))
 
 (defn pull-arb-by-eid [eid]
@@ -48,6 +45,9 @@
      :headers {"Content-Type" "application/hal+json; charset=utf-8"}
      :body doc-html}))
 
+(defn update-doc [eid doc-string]
+  [eid doc-string])
+
 (defn post-doc [doc-string]
  (let [tx (-> (html->tx doc-string) (add-tempid) (edn->clj))
        [eid db-after] (save-arb-tx tx)
@@ -62,19 +62,18 @@
 
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
-  (POST "/documents" [body :as {body :body}] (post-doc (:doc-string body)))
+  (POST "/documents" [doc-string] (post-doc doc-string))
   (GET "/documents/:eid" [eid] (get-doc (bigint eid)))
   (route/not-found "Not found"))
 
 (defn wrap-with-logger [handler]
   (fn [request]
-    (pprint request)
+    (prn (str "Request: " (:request-method request) " " (:uri request)))
     (handler request)))
 
 (def app
   (-> app-routes
-      (wrap-with-logger)
-      (wrap-json-body {:keywords? true})
       (wrap-json-response)
+      (wrap-with-logger)
       (wrap-defaults api-defaults)))
 
