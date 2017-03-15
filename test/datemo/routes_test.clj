@@ -1,9 +1,11 @@
 (ns datemo.routes-test
-  (:require [cheshire.core :as json :refer [parse-string]])
+  (:require [cheshire.core :as json :refer [parse-string]]
+            [datomic.api :as d])
   (:use clojure.test
         ring.mock.request
         markdown.core
-        datemo.routes))
+        datemo.routes
+        datemo.db))
 
 (use '[clojure.pprint :refer [pprint]])
 
@@ -16,6 +18,20 @@
       (is (= (:status response) 200))
       (is (= (json/parse-string (:body response) true)
              {:_links {:documents {:href "/docs"}}}))))
+
+  (testing "GET /documents/:id"
+    (def id (d/squuid))
+    (try
+      (d/transact conn [{:arb/id id
+                         :arb/metadata {:metadata/html-tag :p}
+                         :arb/value {:content/text "test"}}])
+      (catch Exception e (.getMessage e)))
+    (let [response (app (request :get (str "/documents/" id)))]
+      (is (= 302 (:status response)))
+      (is (= {:_links {:self (str "/documents/" id)}
+              :_embedded {:id (str id)
+                          :html "<p>test</p>"}}
+             (-> (parse response))))))
 
   (testing "POST /documents"
     (def data

@@ -36,14 +36,18 @@
 (defn edn->clj [edn]
   (edn/read-string {:readers *data-readers*} (prn-str edn)))
 
-(defn get-doc [eid]
-  (pprint (type eid))
-  (let [doc-tx (d/pull (d/db conn) '[*] eid)
+(defn get-doc
+  "Given a uuid string id, responds with the document if found."
+  [uuid-str]
+  (let [uuid (java.util.UUID/fromString uuid-str)
+        doc-tx (try (d/pull (d/db conn) '[*] [:arb/id uuid])
+                    (catch Exception e (.getMessage e)))
         doc-html (tx->html doc-tx)]
-    (pprint doc-tx)
-    {:status 200
+    {:status 302
      :headers {"Content-Type" "application/hal+json; charset=utf-8"}
-     :body doc-html}))
+     :body {:_links {:self (apply str "/documents/" (str uuid-str))}
+            :_embedded {:id uuid-str
+                        :html doc-html}}}))
 
 (defn update-doc [eid doc-string]
   [eid doc-string])
@@ -63,7 +67,7 @@
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
   (POST "/documents" [doc-string] (post-doc doc-string))
-  (GET "/documents/:eid" [eid] (get-doc (bigint eid)))
+  (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
   (route/not-found "Not found"))
 
 (defn wrap-with-logger [handler]
