@@ -1,0 +1,70 @@
+FORMAT: 1A
+HOST: http://datemo.info
+
+# Datemo
+
+Datemo is an API for documents.
+
+## Documents Collection [/documents]
+
+### Create a New Document [POST]
+
+You may create your own document using this action.
+
+- doc-string (string) - The document as an html string.
+- type (string) - The type of document (note, or document).
+
++ Request (application/json)
+
+        {
+            "doc-string": "<p>This is a paragraph.</p>",
+        }
+
++ Response 201 (application/hal+json)
+
+        {
+            "_links": {
+                "self": { "href": "/document/<id> }
+            }
+            "_embedded": {
+                "doc-string": "<h1>Title</h1><p>This is a paragraph.</p>",
+                "publishedAt": "2014-11-11T08:40:51.620Z",
+            }
+        }
+
+## Document Resources [/documents/:id]
+
+### View an Existing Document [GET]
+
++ Response 200 (application/hal+json)
+
+        {
+            "_links": {
+                "self": { "href": "/document/<id> }
+            }
+            "_embedded": {
+                "doc-string": "<h1>Title</h1><p>This is a paragraph.</p>",
+                "publishedAt": "2014-11-11T08:40:51.620Z",
+            }
+        }
+
+
+### Update an Existing Document [PUT]
+
++ Request (application/json)
+
+        {
+            "doc-string": "<p>Update for the document</p>"
+        }
+
++ Response 200 (application/hal+json)
+
+        {
+            "_links": {
+                "self": { "href": "/document/<id> }
+            }
+            "_embedded": {
+                "doc-string": "<h1>Title</h1><p>This is a paragraph.</p>",
+                "publishedAt": "2014-11-11T08:40:51.620Z",
+            }
+        }
