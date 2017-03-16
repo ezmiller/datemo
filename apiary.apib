@@ -24,10 +24,9 @@ You may create your own document using this action.
 
         {
             "_links": {
-                "self": { "href": "/document/58ca459f-a49f-46da-8bef-4b6cc2006696" }
+                "self": { "href": "/document/<id> }
             }
             "_embedded": {
-                "id": "58ca459f-a49f-46da-8bef-4b6cc2006696",
                 "doc-string": "<h1>Title</h1><p>This is a paragraph.</p>",
                 "publishedAt": "2014-11-11T08:40:51.620Z",
             }
@@ -41,10 +40,9 @@ You may create your own document using this action.
 
         {
             "_links": {
-                "self": { "href": "/documents/58ca459f-a49f-46da-8bef-4b6cc2006696" }
+                "self": { "href": "/document/<id> }
             }
             "_embedded": {
-                "id": "58ca459f-a49f-46da-8bef-4b6cc2006696",
                 "doc-string": "<h1>Title</h1><p>This is a paragraph.</p>",
                 "publishedAt": "2014-11-11T08:40:51.620Z",
             }
@@ -56,7 +54,6 @@ You may create your own document using this action.
 + Request (application/json)
 
         {
-            "id": "58ca459f-a49f-46da-8bef-4b6cc2006696",
             "doc-string": "<p>Update for the document</p>"
         }
 
@@ -64,11 +61,10 @@ You may create your own document using this action.
 
         {
             "_links": {
-                "self": { "href": "/documents/58ca459f-a49f-46da-8bef-4b6cc2006696" }
+                "self": { "href": "/document/<id> }
             }
             "_embedded": {
-                "doc-string": "<p>Updated for the document</p>",
-                "lastUpdatedAt": "2014-12-30T09:00:23.340Z",
+                "doc-string": "<h1>Title</h1><p>This is a paragraph.</p>",
                 "publishedAt": "2014-11-11T08:40:51.620Z",
             }
         }
