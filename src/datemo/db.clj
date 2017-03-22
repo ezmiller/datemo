@@ -41,26 +41,59 @@
   "Create a connection to an anonymous, in-memory database."
   []
   (let [uri (str "datomic:mem://" (d/squuid))]
+    (println (str "Scratch db: " uri))
+    (d/delete-database uri)
+    (d/create-database uri)
+    (d/connect uri)))
+(defn scratch-conn
+  "Create a connection to an anonymous, in-memory database."
+  []
+  (let [uri (str "datomic:mem://" (d/squuid))]
+    (println (str "Scratch db: " uri))
     (d/delete-database uri)
     (d/create-database uri)
     (d/connect uri)))
 
-(defn setup-test-db []
-  (def conn (scratch-conn))
-  (-> (load-schema "schemas/arb.edn")
-      (install-schema conn))
-  conn)
-
 (defn connect
   "Returns a connection object. If no db-uri provided, will return
    a connection to an anonymous in-memory database."
-  ([] (setup-test-db))
+  ([]
+   (scratch-conn))
   ([db-uri]
     (try
       (d/connect db-uri)
       (catch Exception e (.getMessage e)))))
 
+;; Initialize the db connection.
 (def conn (connect))
 
 (defn db-now [] (d/db conn))
 
+(defn transact [conn & tx-specs]
+  (d/transact conn tx-specs))
+
+(defn retract-entity [entity-spec]
+  [:db.fn/retractEntity entity-spec])
+
+(defn retract-value [entity-spec attribute value]
+  [:db/retract entity-spec attribute value])
+
+(defn add-entity [partition attr-val-map]
+  ([attr-val-map]
+   (add-entity :db.part/user attr-val-map))
+  ([partition attr-val-map]
+   (into {:db/id (d/tempid partition)} attr-val-map)))
+
+(defn add-value [entity-spec attribute value]
+  [:db/add entity-spec attribute value])
+
+(defn transact [conn & tx-specs]
+  (d/transact conn tx-specs))
+
+;: Pull
+
+(defn pull-entity [entity-spec]
+  (d/pull (db-now) '[*] entity-spec))
+
+(defn pull-value [entity-spec attribute]
+  (d/pull (db-now) [attribute] entity-spec))

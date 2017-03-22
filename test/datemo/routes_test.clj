@@ -5,9 +5,14 @@
         ring.mock.request
         markdown.core
         datemo.routes
+        datemo.arb
         datemo.db))
 
 (use '[clojure.pprint :refer [pprint]])
+
+;; Install arb schema in scratch db.
+(-> (load-schema "schemas/arb.edn")
+    (install-schema conn))
 
 (defn parse [response]
   (-> (:body response) (json/parse-string true)))
@@ -32,6 +37,31 @@
               :_embedded {:id (str id)
                           :html "<p>test</p>"}}
              (-> (parse response))))))
+
+  (testing "PUT /documents/:id"
+    (testing "with single node doc"
+      (let [id (d/squuid)
+            tx-spec (into {:arb/id id} (html->tx "<div>test</div>"))
+            data {:doc-string "<p>replaced</p>"}
+            tx-result (d/transact conn [tx-spec])
+            response (app (request :put (str "/documents/" id) data))]
+          (is (= 202 (:status response)))
+          (is (= {:_links {:self (str "/documents/" id)}
+                  :_embedded {:id (str id)
+                              :html "<p>replaced</p>"}}
+                 (-> (parse response))))))
+    (testing "with multilevel nodes at top level"
+      (let [id (d/squuid)
+            tx-spec (into {:arb/id id}
+                          (html->tx "<div>test</div><div>test2</div>"))
+            data {:doc-string "<p>replaced</p>"}
+            tx-result (d/transact conn [tx-spec])
+            response (app (request :put (str "/documents/" id) data))]
+          (is (= 202 (:status response)))
+          (is (= {:_links {:self (str "/documents/" id)}
+                  :_embedded {:id (str id)
+                              :html "<p>replaced</p>"}}
+                 (-> (parse response)))))))
 
   (testing "POST /documents"
     (def data

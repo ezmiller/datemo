@@ -11,6 +11,9 @@
 
 (require '[clojure.pprint :refer [pprint]])
 
+(defn str->uuid [uuid-str]
+  (java.util.UUID/fromString uuid-str))
+
 (defn save-arb-tx
   "Transact and return entity id and reference to db in new state."
   [tx]
@@ -19,9 +22,6 @@
         db-after (:db-after post-tx)
         eid (d/resolve-tempid (db-now) (:tempids post-tx) tempid)]
     [eid db-after]))
-
-(defn pull-arb-by-eid [eid]
-  (d/pull (d/db conn) '[*] eid))
 
 ;; I tried to use :db.part/arb for the tempid below, but it
 ;; caused an error, invalid id. 
@@ -39,18 +39,36 @@
 (defn get-doc
   "Given a uuid string id, responds with the document if found."
   [uuid-str]
-  (let [uuid (java.util.UUID/fromString uuid-str)
+  (let [uuid (str->uuid uuid-str)
         doc-tx (try (d/pull (d/db conn) '[*] [:arb/id uuid])
                     (catch Exception e (.getMessage e)))
         doc-html (tx->html doc-tx)]
     {:status 302
-     :headers {"Content-Type" "application/hal+json; charset=utf-8"}
+     :headers {"Content-Type" "appl/uication/hal+json; charset=utf-8"}
      :body {:_links {:self (apply str "/documents/" (str uuid-str))}
             :_embedded {:id uuid-str
                         :html doc-html}}}))
 
-(defn update-doc [eid doc-string]
-  [eid doc-string])
+(defn remove-arb-root [tx-doc]
+  (-> (mapv #(retract-entity (:db/id %)) (:arb/value tx-doc))
+      (into (mapv #(retract-entity (:db/id %)) (:arb/metadata tx-doc)))))
+
+(defn put-doc [uuid-str doc-string]
+  (def entity-spec [:arb/id (str->uuid uuid-str)])
+  (let [found (d/pull (db-now) '[*] entity-spec)
+        update (-> (html->tx doc-string) (into {:arb/id (str->uuid uuid-str)}))]
+    (if (nil? found)
+      {:status 404}
+      (let [retractions (remove-arb-root found)
+            retract-tx (d/transact conn retractions)
+            update-tx (d/transact conn [update])
+            db-after (:db-after @update-tx)
+            doc-tx (d/pull db-after '[*] entity-spec)
+            doc-html (tx->html doc-tx)]
+        {:status 202
+         :body {:_links {:self (apply str "/documents/" uuid-str)}
+                :_embedded {:id uuid-str
+                            :html doc-html}}}))))
 
 (defn post-doc [doc-string]
  (let [tx (-> (html->tx doc-string) (add-tempid) (edn->clj))
@@ -67,6 +85,7 @@
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
   (POST "/documents" [doc-string] (post-doc doc-string))
+  (PUT "/documents/:uuid-str" [uuid-str doc-string] (put-doc uuid-str doc-string))
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
   (route/not-found "Not found"))
 
@@ -78,6 +97,6 @@
 (def app
   (-> app-routes
       (wrap-json-response)
-      (wrap-with-logger)
+      ;; (wrap-with-logger)
       (wrap-defaults api-defaults)))
 
