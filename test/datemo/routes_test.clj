@@ -64,9 +64,12 @@
                  (-> (parse response)))))))
 
   (testing "POST /documents"
-    (def data
-      (array-map :doc-string (md-to-html-string "# Title  \nParagraph")))
-    (let [response (app (request :post "/documents" data))]
+    (let [data (->> (md-to-html-string "# Title  \nParagraph")
+                   (array-map :doc-string)
+                   (json/generate-string))
+          response (-> (request :post "/documents" data)
+                       (header "Content-Type" "application/json")
+                       (app))]
       (is (= 201 (:status response)))
       (is (= {"Content-Type" "application/hal+json; charset=utf-8"}
              (:headers response)))

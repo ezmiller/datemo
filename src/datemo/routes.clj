@@ -75,7 +75,6 @@
        [eid db-after] (save-arb-tx tx)
        tx-from-db (d/pull db-after '[*] eid)
        html (-> tx-from-db (tx->arb) (arb->hiccup) (html))]
-   (pprint (type eid))
    {:status 201
     :headers {"Content-Type" "application/hal+json; charset=utf-8"}
     :body {:_links {:self (apply str "/documents/" (str eid))}
@@ -84,7 +83,7 @@
 
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
-  (POST "/documents" [doc-string] (post-doc doc-string))
+  (POST "/documents" [:as {body :body}] (post-doc (body :doc-string)))
   (PUT "/documents/:uuid-str" [uuid-str doc-string] (put-doc uuid-str doc-string))
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
   (route/not-found "Not found"))
@@ -98,5 +97,6 @@
   (-> app-routes
       (wrap-json-response)
       ;; (wrap-with-logger)
+      (wrap-json-body {:keywords? true})
       (wrap-defaults api-defaults)))
 
