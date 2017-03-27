@@ -45,14 +45,6 @@
     (d/delete-database uri)
     (d/create-database uri)
     (d/connect uri)))
-(defn scratch-conn
-  "Create a connection to an anonymous, in-memory database."
-  []
-  (let [uri (str "datomic:mem://" (d/squuid))]
-    (println (str "Scratch db: " uri))
-    (d/delete-database uri)
-    (d/create-database uri)
-    (d/connect uri)))
 
 (defn connect
   "Returns a connection object. If no db-uri provided, will return
@@ -61,11 +53,14 @@
    (scratch-conn))
   ([db-uri]
     (try
+      (println (str "Connecting to db: " db-uri))
       (d/connect db-uri)
       (catch Exception e (.getMessage e)))))
 
 ;; Initialize the db connection.
-(def conn (connect))
+(def conn (if (= "true" (env :use-scratch-db))
+            (connect)
+            (connect (env :database-uri))))
 
 (defn db-now [] (d/db conn))
 
