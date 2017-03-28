@@ -84,7 +84,8 @@
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
   (POST "/documents" [:as {body :body}] (post-doc (body :doc-string)))
-  (PUT "/documents/:uuid-str" [uuid-str doc-string] (put-doc uuid-str doc-string))
+  (PUT "/documents/:uuid-str" [uuid-str :as {body :body}]
+       (put-doc uuid-str (body :doc-string)))
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
   (route/not-found "Not found"))
 

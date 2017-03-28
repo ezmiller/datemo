@@ -17,6 +17,10 @@
 (defn parse [response]
   (-> (:body response) (json/parse-string true)))
 
+(defmacro prep-request [method path data]
+  `(-> (request ~method ~path (json/generate-string ~data))
+       (header "Content-Type" "application/json; charset=utf-8")))
+
 (deftest test-app
   (testing "GET /"
     (let [response (app (request :get "/"))]
@@ -44,7 +48,7 @@
             tx-spec (into {:arb/id id} (html->tx "<div>test</div>"))
             data {:doc-string "<p>replaced</p>"}
             tx-result (d/transact conn [tx-spec])
-            response (app (request :put (str "/documents/" id) data))]
+            response (app (prep-request :put (str "/documents/" id) data))]
           (is (= 202 (:status response)))
           (is (= {:_links {:self (str "/documents/" id)}
                   :_embedded {:id (str id)
@@ -56,7 +60,7 @@
                           (html->tx "<div>test</div><div>test2</div>"))
             data {:doc-string "<p>replaced</p>"}
             tx-result (d/transact conn [tx-spec])
-            response (app (request :put (str "/documents/" id) data))]
+            response (app (prep-request :put (str "/documents/" id) data))]
           (is (= 202 (:status response)))
           (is (= {:_links {:self (str "/documents/" id)}
                   :_embedded {:id (str id)
@@ -65,11 +69,8 @@
 
   (testing "POST /documents"
     (let [data (->> (md-to-html-string "# Title  \nParagraph")
-                   (array-map :doc-string)
-                   (json/generate-string))
-          response (-> (request :post "/documents" data)
-                       (header "Content-Type" "application/json")
-                       (app))]
+                   (array-map :doc-string))
+          response (app (prep-request :post "/documents" data))]
       (is (= 201 (:status response)))
       (is (= {"Content-Type" "application/hal+json; charset=utf-8"}
              (:headers response)))
