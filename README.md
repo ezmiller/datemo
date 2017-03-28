@@ -27,3 +27,9 @@ bin/console -p 8080 datemo datomic:dev://localhost:4334/datemo
 rlwrap bin/repl
 ```
 
+To run the server do:
+
+```
+lein ring server
+```
+
