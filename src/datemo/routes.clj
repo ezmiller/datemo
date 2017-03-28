@@ -14,20 +14,6 @@
 (defn str->uuid [uuid-str]
   (java.util.UUID/fromString uuid-str))
 
-(defn save-arb-tx
-  "Transact and return entity id and reference to db in new state."
-  [tx]
-  (let [tempid (:db/id tx)
-        post-tx @(d/transact conn [tx])
-        db-after (:db-after post-tx)
-        eid (d/resolve-tempid (db-now) (:tempids post-tx) tempid)]
-    [eid db-after]))
-
-;; I tried to use :db.part/arb for the tempid below, but it
-;; caused an error, invalid id. 
-(defn add-tempid [arb-tx]
-  (into arb-tx {:db/id (d/tempid :db.part/user)}))
-
 ;; Note: You get an error if the {:readers *data-reader*} bit is not added.
 ;; This seems to relate to the need for data-readers to understand certain
 ;; tags; in this case: :db/id. Datomic installs some data readers for us.
@@ -70,15 +56,24 @@
                 :_embedded {:id uuid-str
                             :html doc-html}}}))))
 
+(defn save-arb-tx
+  "Transact and return entity id and reference to db in new state."
+  [tx]
+  (let [tempid (:db/id tx)
+        post-tx @(d/transact conn [tx])
+        db-after (:db-after post-tx)]
+    db-after))
+
 (defn post-doc [doc-string]
- (let [tx (-> (html->tx doc-string) (add-tempid) (edn->clj))
-       [eid db-after] (save-arb-tx tx)
-       tx-from-db (d/pull db-after '[*] eid)
+ (let [id (d/squuid)
+       tx (-> (html->tx doc-string) (into {:arb/id id}) (edn->clj))
+       db-after (save-arb-tx tx)
+       tx-from-db (d/pull db-after '[*] [:arb/id id])
        html (-> tx-from-db (tx->arb) (arb->hiccup) (html))]
    {:status 201
     :headers {"Content-Type" "application/hal+json; charset=utf-8"}
-    :body {:_links {:self (apply str "/documents/" (str eid))}
-           :_embedded {:id eid
+    :body {:_links {:self (apply str "/documents/" (str id))}
+           :_embedded {:id id
                        :html html}}}))
 
 (defroutes app-routes
