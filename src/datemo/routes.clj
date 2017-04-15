@@ -1,5 +1,6 @@
 (ns datemo.routes
-  (:use compojure.core
+  (:use markdown.core
+        compojure.core
         hiccup.core
         datemo.arb
         datemo.db)
@@ -67,7 +68,7 @@
 
 (defn post-doc [doc-string]
  (let [id (d/squuid)
-       tx (-> (html->tx doc-string) (into {:arb/id id}) (edn->clj))
+       tx (-> (html->tx (md-to-html-string doc-string)) (into {:arb/id id}) (edn->clj))
        db-after (save-arb-tx tx)
        tx-from-db (d/pull db-after '[*] [:arb/id id])
        html (-> tx-from-db (tx->arb) (arb->hiccup) (html))]
