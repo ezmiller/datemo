@@ -67,6 +67,7 @@
                               :html "<p>replaced</p>"}}
                  (-> (parse response)))))))
 
+  ;; TODO: Add tests for error case.
   (testing "POST /documents"
     (let [data (->> (apply str "# Title  \nParagraph")
                     (array-map :doc-string)

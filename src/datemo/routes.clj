@@ -9,7 +9,8 @@
             [ring.middleware.json :refer :all]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [ring.middleware.cors :refer [wrap-cors]]
-            [datomic.api :as d]))
+            [datomic.api :as d]
+            [datemo.db :as db]))
 
 (require '[clojure.pprint :refer [pprint]])
 
@@ -58,28 +59,25 @@
                 :_embedded {:id uuid-str
                             :html doc-html}}}))))
 
-(defn save-arb-tx
-  "Transact and return entity id and reference to db in new state."
-  [tx]
-  (let [tempid (:db/id tx)
-        post-tx @(d/transact conn [tx])
-        db-after (:db-after post-tx)]
-    db-after))
-
 (defn post-doc [doc-string doctype]
  (let [id (d/squuid)
        tx (-> (html->tx (md-to-html-string doc-string))
               (into {:arb/doctype (keyword "doctype" doctype)})
               (into {:arb/id id}) (edn->clj))
-       db-after (save-arb-tx tx)
-       tx-from-db (d/pull db-after '[*] [:arb/id id])
-       html (-> tx-from-db (tx->arb) (arb->hiccup) (html))]
-   {:status 201
-    :headers {"Content-Type" "application/hal+json; charset=utf-8"}
-    :body {:_links {:self (apply str "/documents/" (str id))}
-           :_embedded {:id id
-                       :doctype doctype
-                       :html html}}}))
+       [tx-result tx-error] (db/transact-or-error [tx])]
+   (pprint {:tx-result tx-result :tx-error tx-error})
+   (if (nil? tx-error)
+     (let [db-after (:db-after tx-result)
+           new-doc (d/pull db-after '[*] [:arb/id id])
+           html (-> new-doc (tx->arb) (arb->hiccup) (html))]
+       {:status 201
+        :headers {"Content-Type" "application/hal+json; charset=utf-8"}
+        :body {:_links {:self (apply str "/documents/" (str id))}
+               :_embedded {:id id
+                           :doctype doctype
+                           :html html}}})
+     {:status 500
+      :body {:error "Failed to post the document."}})))
 
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
