@@ -52,8 +52,8 @@
   ([]
    (scratch-conn))
   ([db-uri]
+    (println (str "Connecting to db: " db-uri))
     (try
-      (println (str "Connecting to db: " db-uri))
       (d/connect db-uri)
       (catch Exception e (.getMessage e)))))
 
