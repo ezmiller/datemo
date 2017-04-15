@@ -64,8 +64,15 @@
 
 (defn db-now [] (d/db conn))
 
-(defn transact [conn & tx-specs]
-  (d/transact conn tx-specs))
+;; Transacts but w/out need for surrounding list
+;; (defn transact [conn & tx-specs]
+;;   (d/transact conn tx-specs))
+
+(defn transact-or-error [tx]
+  (pprint {:tx tx})
+  (try [@(d/transact conn tx) nil]
+       (catch Exception e
+         [nil (.getMessage e)])))
 
 (defn retract-entity [entity-spec]
   [:db.fn/retractEntity entity-spec])
@@ -82,8 +89,6 @@
 (defn add-value [entity-spec attribute value]
   [:db/add entity-spec attribute value])
 
-(defn transact [conn & tx-specs]
-  (d/transact conn tx-specs))
 
 ;: Pull
 
