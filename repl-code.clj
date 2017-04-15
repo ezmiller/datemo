@@ -9,6 +9,7 @@
 ;;                :arb/value [{:text "This is a paragraph."}]}]}]
 
 
+;; for client api
 (require '[clojure.core.async :refer [<!!]]
          '[datomic.client :as client])
 
@@ -25,5 +26,8 @@
 (def db (client/db conn))
 
 
+;; for datomic api
+(require '[datomic.api :as d])
 
-
+(def conn (d/connect "datomic:dev://localhost:4334/datemo"))
+(def db-now (d/db conn))
