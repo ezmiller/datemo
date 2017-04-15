@@ -69,7 +69,8 @@
 
   (testing "POST /documents"
     (let [data (->> (apply str "# Title  \nParagraph")
-                   (array-map :doc-string))
+                    (array-map :doc-string)
+                    (into {:doctype "note"}))
           response (app (prep-request :post "/documents" data))]
       (is (= 201 (:status response)))
       (is (= {"Content-Type" "application/hal+json; charset=utf-8"}
@@ -79,6 +80,8 @@
                  (:_links)
                  (->> (:self) (re-find #"/documents/")))))
       (is (= true (-> (parse response) (:_embedded) (contains? :id))))
+      (is (= "note"
+             (-> (parse response) (:_embedded) (:doctype))))
       (is (= "<div><h1>Title</h1><p>Paragraph</p></div>"
              (-> (parse response)
                  (:_embedded)

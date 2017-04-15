@@ -5,6 +5,12 @@
  {:db/ident            :metadata/html-tag
   :db/valueType        :db.type/keyword
   :db/cardinality      :db.cardinality/one}
+ {:db/ident            :arb/doctype
+  :db/valueType        :db.type/ref
+  :db/cardinality      :db.cardinality/one
+  :db/doc              "A descriptor of the 'kind' of document."}
+ {:db/ident            :doctype/note}
+ {:db/ident            :doctype/essay}
  {:db/ident            :arb/id
   :db/valueType        :db.type/uuid
   :db/cardinality      :db.cardinality/one

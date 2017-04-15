@@ -66,9 +66,11 @@
         db-after (:db-after post-tx)]
     db-after))
 
-(defn post-doc [doc-string]
+(defn post-doc [doc-string doctype]
  (let [id (d/squuid)
-       tx (-> (html->tx (md-to-html-string doc-string)) (into {:arb/id id}) (edn->clj))
+       tx (-> (html->tx (md-to-html-string doc-string))
+              (into {:arb/doctype (keyword "doctype" doctype)})
+              (into {:arb/id id}) (edn->clj))
        db-after (save-arb-tx tx)
        tx-from-db (d/pull db-after '[*] [:arb/id id])
        html (-> tx-from-db (tx->arb) (arb->hiccup) (html))]
@@ -76,11 +78,13 @@
     :headers {"Content-Type" "application/hal+json; charset=utf-8"}
     :body {:_links {:self (apply str "/documents/" (str id))}
            :_embedded {:id id
+                       :doctype doctype
                        :html html}}}))
 
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
-  (POST "/documents" [:as {body :body}] (post-doc (body :doc-string)))
+  (POST "/documents" [:as {body :body}]
+        (post-doc (body :doc-string) (body :doctype)))
   (PUT "/documents/:uuid-str" [uuid-str :as {body :body}]
        (put-doc uuid-str (body :doc-string)))
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
