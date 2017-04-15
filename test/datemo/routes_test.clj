@@ -68,7 +68,7 @@
                  (-> (parse response)))))))
 
   (testing "POST /documents"
-    (let [data (->> (md-to-html-string "# Title  \nParagraph")
+    (let [data (->> (apply str "# Title  \nParagraph")
                    (array-map :doc-string))
           response (app (prep-request :post "/documents" data))]
       (is (= 201 (:status response)))
