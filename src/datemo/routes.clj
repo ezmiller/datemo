@@ -85,15 +85,16 @@
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
   (route/not-found "Not found"))
 
-(defn wrap-with-logger [handler]
+(defn wrap-with-debugger [handler]
   (fn [request]
+    ;; (pprint request)
     (prn (str "Request: " (:request-method request) " " (:uri request)))
     (handler request)))
 
 (def app
   (-> app-routes
       (wrap-json-response)
-      ;; (wrap-with-logger)
+      ;; (wrap-with-debugger)
       (wrap-json-body {:keywords? true})
       (wrap-cors :access-control-allow-origin [#"http://localhost:8080"]
                  :access-control-allow-methods [:get :put :post :delete])
