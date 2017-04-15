@@ -7,6 +7,7 @@
             [compojure.route :as route]
             [ring.middleware.json :refer :all]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
+            [ring.middleware.cors :refer [wrap-cors]]
             [datomic.api :as d]))
 
 (require '[clojure.pprint :refer [pprint]])
@@ -94,5 +95,7 @@
       (wrap-json-response)
       ;; (wrap-with-logger)
       (wrap-json-body {:keywords? true})
+      (wrap-cors :access-control-allow-origin [#"http://localhost:8080"]
+                 :access-control-allow-methods [:get :put :post :delete])
       (wrap-defaults api-defaults)))
 
