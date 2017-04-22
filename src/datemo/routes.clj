@@ -65,7 +65,6 @@
               (into {:arb/doctype (keyword "doctype" doctype)})
               (into {:arb/id id}) (edn->clj))
        [tx-result tx-error] (db/transact-or-error [tx])]
-   (pprint {:tx-result tx-result :tx-error tx-error})
    (if (nil? tx-error)
      (let [db-after (:db-after tx-result)
            new-doc (d/pull db-after '[*] [:arb/id id])
