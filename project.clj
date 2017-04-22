@@ -28,6 +28,6 @@
   {:dev {:env {:database-uri "datomic:dev://localhost:4334/datemo"}
          :dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.0"]]}
-   :test {:env {:use-scratch-db "true"}
+   :test {:env {:testing "true"}
           :dependencies [[javax.servlet/servlet-api "2.5"]
                          [ring/ring-mock "0.3.0"]]}})

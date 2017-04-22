@@ -30,6 +30,49 @@
       (read-all)
       (first)))
 
+(defn scratch-conn
+  "Create a connection to an anonymous, in-memory database. Returns
+   a tuple containing a connection object and the db-uri."
+  []
+  (let [uri (str "datomic:mem://" (d/squuid))]
+    ;; (println (str "Scratch db: " uri))
+    (d/delete-database uri)
+    (d/create-database uri)
+    [(d/connect uri) uri]))
+
+(defn connect
+  ([] (scratch-conn))
+  ([db-uri]
+   (println (str "Connecting to db: " db-uri))
+   [(d/connect db-uri) db-uri]))
+
+;; Initailize!
+
+(def db-atom (atom {:conn nil, :db-uri ""}))
+
+(defn init-db
+  ([] (init-db false))
+  ([use-scratch-db]
+    (let [[conn db-uri] (if (= true use-scratch-db)
+                          (connect)
+                          (connect (env :database-uri)))]
+      (swap! db-atom assoc :conn conn :db-uri db-uri))))
+
+(if (= "true" (env :testing))
+  (init-db true)
+  (init-db))
+
+;; Helper functions
+
+(defn get-conn []
+  (:conn @db-atom))
+
+(defn get-db-uri []
+  (:db-uri @db-atom))
+
+(defn db-now []
+  (d/db (:conn @db-atom)))
+
 (defn install-schema
   "Attempts to transact a schema. If sucessful, returns tx promise;
    otherwise, error."
@@ -37,39 +80,8 @@
   (let [tx (d/transact conn schema-tx)]
     (try @tx (catch Exception e (.getMessage e)))))
 
-(defn scratch-conn
-  "Create a connection to an anonymous, in-memory database."
-  []
-  (let [uri (str "datomic:mem://" (d/squuid))]
-    (println (str "Scratch db: " uri))
-    (d/delete-database uri)
-    (d/create-database uri)
-    (d/connect uri)))
-
-(defn connect
-  "Returns a connection object. If no db-uri provided, will return
-   a connection to an anonymous in-memory database."
-  ([]
-   (scratch-conn))
-  ([db-uri]
-    (println (str "Connecting to db: " db-uri))
-    (try
-      (d/connect db-uri)
-      (catch Exception e (.getMessage e)))))
-
-;; Initialize the db connection.
-(def conn (if (= "true" (env :use-scratch-db))
-            (connect)
-            (connect (env :database-uri))))
-
-(defn db-now [] (d/db conn))
-
-;; Transacts but w/out need for surrounding list
-;; (defn transact [conn & tx-specs]
-;;   (d/transact conn tx-specs))
-
 (defn transact-or-error [tx]
-  (try [@(d/transact conn tx) nil]
+  (try [@(d/transact (get-conn) tx) nil]
        (catch Exception e
          [nil (.getMessage e)])))
 

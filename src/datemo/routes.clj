@@ -29,7 +29,7 @@
   "Given a uuid string id, responds with the document if found."
   [uuid-str]
   (let [uuid (str->uuid uuid-str)
-        doc-tx (try (d/pull (d/db conn) '[*] [:arb/id uuid])
+        doc-tx (try (d/pull (db-now) '[*] [:arb/id uuid])
                     (catch Exception e (.getMessage e)))
         doc-html (tx->html doc-tx)]
     {:status 200
@@ -49,8 +49,8 @@
     (if (nil? found)
       {:status 404}
       (let [retractions (remove-arb-root found)
-            retract-tx (d/transact conn retractions)
-            update-tx (d/transact conn [update])
+            retract-tx (d/transact (get-conn) retractions)
+            update-tx (d/transact (get-conn) [update])
             db-after (:db-after @update-tx)
             doc-tx (d/pull db-after '[*] entity-spec)
             doc-html (tx->html doc-tx)]

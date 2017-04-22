@@ -11,8 +11,14 @@
 (use '[clojure.pprint :refer [pprint]])
 
 ;; Install arb schema in scratch db.
-(-> (load-schema "schemas/arb.edn")
-    (install-schema conn))
+(defn db-prep [f]
+  (d/delete-database (get-db-uri))
+  (init-db true)
+  (-> (load-schema "schemas/arb.edn")
+      (install-schema (get-conn)))
+  (f))
+
+(use-fixtures :each db-prep)
 
 (defn parse [response]
   (-> (:body response) (json/parse-string true)))
@@ -21,17 +27,18 @@
   `(-> (request ~method ~path (json/generate-string ~data))
        (header "Content-Type" "application/json; charset=utf-8")))
 
-(deftest test-app
+(deftest test-get-root
   (testing "GET /"
     (let [response (app (request :get "/"))]
       (is (= (:status response) 200))
       (is (= (json/parse-string (:body response) true)
-             {:_links {:documents {:href "/docs"}}}))))
+             {:_links {:documents {:href "/docs"}}})))))
 
+(deftest test-get-document-by-id
   (testing "GET /documents/:id"
     (def id (d/squuid))
     (try
-      (d/transact conn [{:arb/id id
+      (d/transact (get-conn) [{:arb/id id
                          :arb/metadata {:metadata/html-tag :p}
                          :arb/value {:content/text "test"}}])
       (catch Exception e (.getMessage e)))
@@ -40,14 +47,15 @@
       (is (= {:_links {:self (str "/documents/" id)}
               :_embedded {:id (str id)
                           :html "<p>test</p>"}}
-             (-> (parse response))))))
+             (-> (parse response)))))))
 
+(deftest test-put-document
   (testing "PUT /documents/:id"
     (testing "with single node doc"
       (let [id (d/squuid)
             tx-spec (into {:arb/id id} (html->tx "<div>test</div>"))
             data {:doc-string "<p>replaced</p>"}
-            tx-result (d/transact conn [tx-spec])
+            tx-result (d/transact (get-conn) [tx-spec])
             response (app (prep-request :put (str "/documents/" id) data))]
           (is (= 202 (:status response)))
           (is (= {:_links {:self (str "/documents/" id)}
@@ -59,14 +67,15 @@
             tx-spec (into {:arb/id id}
                           (html->tx "<div>test</div><div>test2</div>"))
             data {:doc-string "<p>replaced</p>"}
-            tx-result (d/transact conn [tx-spec])
+            tx-result (d/transact (get-conn) [tx-spec])
             response (app (prep-request :put (str "/documents/" id) data))]
           (is (= 202 (:status response)))
           (is (= {:_links {:self (str "/documents/" id)}
                   :_embedded {:id (str id)
                               :html "<p>replaced</p>"}}
-                 (-> (parse response)))))))
+                 (-> (parse response))))))))
 
+(deftest test-post-document
   ;; TODO: Add tests for error case.
   (testing "POST /documents"
     (let [data (->> (apply str "# Title  \nParagraph")
@@ -86,8 +95,10 @@
       (is (= "<div><h1>Title</h1><p>Paragraph</p></div>"
              (-> (parse response)
                  (:_embedded)
-                 (:html))))))
+                 (:html)))))))
 
+
+(deftest test-not-found-route
   (testing "not-found route"
     (let [response (app (request :get "/bogus/route"))]
       (is (= (:status response) 404))

@@ -5,6 +5,15 @@
 
 (require '[clojure.pprint :refer [pprint]])
 
+(defn setup-db [f]
+  (d/delete-database (get-db-uri))
+  (init-db true)
+  (-> (load-schema "schemas/arb.edn")
+      (install-schema (get-conn)))
+  (f))
+
+(use-fixtures :each setup-db)
+
 (deftest db-test
   (testing "testing transact-or-error"
     (let [successful (transact-or-error
