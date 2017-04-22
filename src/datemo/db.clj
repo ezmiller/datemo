@@ -69,7 +69,6 @@
 ;;   (d/transact conn tx-specs))
 
 (defn transact-or-error [tx]
-  (pprint {:tx tx})
   (try [@(d/transact conn tx) nil]
        (catch Exception e
          [nil (.getMessage e)])))
