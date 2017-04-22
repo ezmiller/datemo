@@ -36,7 +36,7 @@
                          :arb/value {:content/text "test"}}])
       (catch Exception e (.getMessage e)))
     (let [response (app (request :get (str "/documents/" id)))]
-      (is (= 302 (:status response)))
+      (is (= 200 (:status response)))
       (is (= {:_links {:self (str "/documents/" id)}
               :_embedded {:id (str id)
                           :html "<p>test</p>"}}

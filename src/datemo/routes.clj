@@ -32,7 +32,7 @@
         doc-tx (try (d/pull (d/db conn) '[*] [:arb/id uuid])
                     (catch Exception e (.getMessage e)))
         doc-html (tx->html doc-tx)]
-    {:status 302
+    {:status 200
      :headers {"Content-Type" "application/hal+json; charset=utf-8"}
      :body {:_links {:self (apply str "/documents/" (str uuid-str))}
             :_embedded {:id uuid-str
