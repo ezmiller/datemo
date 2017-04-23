@@ -14,6 +14,9 @@
 
 (require '[clojure.pprint :refer [pprint]])
 
+(defn parse-int [s]
+   (Integer. (re-find  #"\d+" s )))
+
 (defn str->uuid [uuid-str]
   (java.util.UUID/fromString uuid-str))
 
@@ -24,6 +27,54 @@
 ;; info: https://clojure.org/reference/reader#_tagged_literals.
 (defn edn->clj [edn]
   (edn/read-string {:readers *data-readers*} (prn-str edn)))
+
+(defn pagination-self-link-params [page doctype perpage]
+  (let [params (transient {})
+        stringify #(apply str (name (key %)) "=" (str (val %)))]
+    (if (> page 1) (assoc! params :page page))
+    (if (not (nil? doctype)) (assoc! params :doctype doctype))
+    (if (not (= 20 perpage)) (assoc! params :perpage perpage))
+    (->> (mapv stringify (persistent! params))
+         (clojure.string/join "&"))))
+
+(defn pagination-link [path page doctype perpage]
+  (let [param-str (pagination-self-link-params page doctype perpage)]
+    (if (= 0 (count param-str))
+      path
+      (apply str path "?" param-str))))
+
+(defn pagination-links [path page doctype perpage total]
+  (let [links (transient {:self (pagination-link path page doctype perpage)})
+        next-link (pagination-link path (inc page) doctype perpage)
+        prev-link (pagination-link path (dec page) doctype perpage)]
+    (if (< (* page perpage) total) (assoc! links :next next-link))
+    (if (not= page 1) (assoc! links :previous prev-link))
+    (persistent! links)))
+
+(defn get-doc-coll-data [coll]
+  (mapv #(hash-map :_links {:self (apply str "/documents/" (str (:arb/id %)))}
+                   :id (:arb/id %)
+                   :html (tx->html %)) coll))
+
+(defn latest [req]
+  (let [page (->> (get-in req [:params :page]) (parse-int))
+        perpage (->> (or (get-in req [:params :perpage]) "20") (parse-int))
+        offset (* perpage (dec page))
+        doctype (get-in req [:params :doctype])
+        query (if (nil? doctype)
+                '[:find (pull ?e [*]) :where [?e :arb/doctype]]
+                '[:find (pull ?e [*])
+                  :where [?e :arb/doctype (keyword "doctype" doctype)]])
+        [docs error] (q-or-error query)]
+    (cond
+      (not (nil? error)) {:status 500}
+      (>= offset (count docs)) {:status 404}
+      :else (let [total (count docs)
+                  paged (->> docs (drop offset) (take perpage))]
+              {:status 200
+               :headers {"Content-Type" "application/hal+json; charset=utf-8"}
+               :body {:_links (pagination-links "/latest" page doctype perpage total)
+                      :_embedded (get-doc-coll-data (mapv #(first %) paged))}}))))
 
 (defn get-doc
   "Given a uuid string id, responds with the document if found."
@@ -85,6 +136,7 @@
   (PUT "/documents/:uuid-str" [uuid-str :as {body :body}]
        (put-doc uuid-str (body :doc-string)))
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
+  (GET "/latest" [:as request] (latest request))
   (route/not-found "Not found"))
 
 (defn wrap-with-debugger [handler]

@@ -27,12 +27,46 @@
   `(-> (request ~method ~path (json/generate-string ~data))
        (header "Content-Type" "application/json; charset=utf-8")))
 
+(defmacro doc-tx-spec [id doctype tag value]
+  [{:arb/id id
+    :arb/doctype (keyword "doctype" doctype)
+    :arb/metadata {:metadata/html-tag tag}
+    :arb/value {:content/text value}}])
+
 (deftest test-get-root
   (testing "GET /"
     (let [response (app (request :get "/"))]
       (is (= (:status response) 200))
       (is (= (json/parse-string (:body response) true)
              {:_links {:documents {:href "/docs"}}})))))
+
+(deftest test-get-latest
+  (testing "GET /latest?page=1 with one note in db"
+    (let [id (d/squuid)
+          url (str "/latest?page=1")
+          doc (doc-tx-spec id "note" :p "note1")
+          tx (d/transact (get-conn) doc)
+          response (app (request :get url))]
+      (is (= {:_links {:self "/latest"}
+              :_embedded [{:_links {:self (apply str "/documents/" (str id))}
+                           :id (str id)
+                           :html "<p>note1</p>"}]}
+             (parse response)))))
+
+  (testing "GET /latest?page=2 with one note in db"
+    (let [url (str "/latest?page=2")
+          response (app (request :get url))]
+      (is (= 404
+             (:status response)))))
+
+  (testing "GET/latest?page=2 with 50 notes in db"
+    (let [url "/latest?page=2"
+          ids (mapv (fn [x] (d/squuid)) (range 50))
+          doc-specs (mapv #(first (doc-tx-spec % "note" :p "test")) ids)
+          tx (d/transact (get-conn) doc-specs)
+          response (app (request :get url))]
+      (is (= 200 (:status response)))
+      (is (= 20 (->> (parse response) (:_embedded) (count)))))))
 
 (deftest test-get-document-by-id
   (testing "GET /documents/:id"

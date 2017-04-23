@@ -106,5 +106,18 @@
 (defn pull-entity [entity-spec]
   (d/pull (db-now) '[*] entity-spec))
 
+(defn pull-many-entities [entity-spec-coll]
+  (d/pull (db-now) '[*] entity-spec-coll))
+
 (defn pull-value [entity-spec attribute]
   (d/pull (db-now) [attribute] entity-spec))
+
+
+;; Querys
+
+(defn q-or-error [query]
+  (try [(d/q query (db-now)) nil]
+       (catch Exception e
+         [nil (.getMessage e)])))
+
+
