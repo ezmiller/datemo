@@ -53,20 +53,42 @@
                            :html "<p>note1</p>"}]}
              (parse response)))))
 
+  (testing "GET /latest (no query params)"
+    (let [url "/latest"
+          response (app (request :get url))]
+      (is (= 200
+             (:status response))
+          (= 1
+             (count (->> (parse response) (:_embedded)))))))
+
   (testing "GET /latest?page=2 with one note in db"
     (let [url (str "/latest?page=2")
           response (app (request :get url))]
       (is (= 404
              (:status response)))))
 
-  (testing "GET/latest?page=2 with 50 notes in db"
+  (testing "GET /latest?page=2 with 50 notes in db"
     (let [url "/latest?page=2"
           ids (mapv (fn [x] (d/squuid)) (range 50))
           doc-specs (mapv #(first (doc-tx-spec % "note" :p "test")) ids)
           tx (d/transact (get-conn) doc-specs)
           response (app (request :get url))]
       (is (= 200 (:status response)))
-      (is (= 20 (->> (parse response) (:_embedded) (count)))))))
+      (is (= 20 (->> (parse response) (:_embedded) (count))))))
+
+  (testing "GET /latest doctype parameter"
+    (let [url "/latest?doctype=essay"
+          ids (mapv (fn [x] (d/squuid)) (range 5))
+          doc-specs (mapv #(first (doc-tx-spec % "essay" :p "test")) ids)
+          tx (d/transact (get-conn) doc-specs)
+          response (app (request :get url))]
+      (is (= 5
+             (->> (parse response) (:_embedded) (count))))))
+
+  (testing "GET /latest perpage parameter"
+    (let [url "/latest?perpage=3"
+          response (app (request :get url))]
+      (is (= 3 (->> (parse response) (:_embedded) (count)))))))
 
 (deftest test-get-document-by-id
   (testing "GET /documents/:id"

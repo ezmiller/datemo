@@ -56,21 +56,27 @@
                    :id (:arb/id %)
                    :html (tx->html %)) coll))
 
+;; Better would be to do this using a paramterized query.
+;; E.g. [:find (pull ?e [*]) :in [$ ?doctype] :where [?e :arb/doctype ?doctype]]
+(defn latest-query
+  ([] '[:find (pull ?e [*]) :where [?e :arb/doctype]])
+  ([doctype]
+   (let [doctype-val (keyword "doctype" doctype)]
+    [:find '(pull ?e [*])
+      :where ['?e ':arb/doctype doctype-val]])))
+
 (defn latest [req]
-  (let [page (->> (get-in req [:params :page]) (parse-int))
+  (let [page (->> (or (get-in req [:params :page]) "1") (parse-int))
         perpage (->> (or (get-in req [:params :perpage]) "20") (parse-int))
         offset (* perpage (dec page))
         doctype (get-in req [:params :doctype])
-        query (if (nil? doctype)
-                '[:find (pull ?e [*]) :where [?e :arb/doctype]]
-                '[:find (pull ?e [*])
-                  :where [?e :arb/doctype (keyword "doctype" doctype)]])
+        query (if (nil? doctype) (latest-query) (latest-query doctype))
         [docs error] (q-or-error query)]
     (cond
       (not (nil? error)) {:status 500}
       (>= offset (count docs)) {:status 404}
       :else (let [total (count docs)
-                  paged (->> docs (drop offset) (take perpage))]
+                  paged (->> (reverse docs) (drop offset) (take perpage))]
               {:status 200
                :headers {"Content-Type" "application/hal+json; charset=utf-8"}
                :body {:_links (pagination-links "/latest" page doctype perpage total)
@@ -127,7 +133,7 @@
                            :doctype doctype
                            :html html}}})
      {:status 500
-      :body {:error "Failed to post the document."}})))
+      :body {:error (apply str "Error posting: " tx-error)}})))
 
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
