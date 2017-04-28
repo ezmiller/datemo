@@ -5,6 +5,50 @@ HOST: http://datemo.info
 
 Datemo is an API for documents.
 
+## Latest Documents [/latest{?page,type,perpage}]
+
+### View the most recent documents added to the server [GET]
+
+- Parameters    
+    - page - The page of results to request.    
+    - type - The type of document to fetch (note, essay, all) (optional).      
+    - perpage - Number of results per page, defaults to 20 (optional).    
+
++ Response 200 (application/hal+json)
+
+        {
+            "_links": {
+                "self": "/latest?"
+                "next": "/latest?page=2"
+            },
+            "_embedded": {
+                "documents": [
+                    {
+                      "id": "5902e5c7-23b6-4664-bba6-f5dffd689eee",
+                      "_links": {
+                        "self": "/documents/5902e5c7-23b6-4664-bba6-f5dffd689eee"
+                      },
+                      "html": "<div><h2>Test</h2><p>This is also a test document.</p></div>"
+                    },
+                    {
+                      "id": "5902e504-6bf6-47be-b1a9-f3e8e0bf4616",
+                      "_links": {
+                        "self": "/documents/5902e504-6bf6-47be-b1a9-f3e8e0bf4616"
+                      },
+                      "html": "<div><h2>Test</h2><p>This is a test document.</p></div>"
+                    },
+                    {
+                      "id": "5902e58a-4948-4df4-a79f-6627576b506d",
+                      "_links": {
+                        "self": "/documents/5902e58a-4948-4df4-a79f-6627576b506d"
+                      },
+                      "html": "<div><h2>Test</h2><p>This is a test document.</p></div>"
+                    }
+                ]
+            }
+        }
+    
+    
 ## Documents Collection [/documents]
 
 ### Create a New Document [POST]
