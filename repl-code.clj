@@ -31,3 +31,10 @@
 
 (def conn (d/connect "datomic:dev://localhost:4334/datemo"))
 (def db-now (d/db conn))
+
+;; for installing the schema
+;; run lein-repl, then:
+(use 'datemo.db)
+(-> (load-schema "schemas/arb.edn")
+    (install-schema (get-conn)))
+
