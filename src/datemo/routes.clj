@@ -54,6 +54,7 @@
 (defn get-doc-coll-data [coll]
   (mapv #(hash-map :_links {:self (apply str "/documents/" (str (:arb/id %)))}
                    :id (:arb/id %)
+                   :title (or (:arb/title %) "Untitled")
                    :html (tx->html %)) coll))
 
 ;; Better would be to do this using a paramterized query.
@@ -88,11 +89,13 @@
   (let [uuid (str->uuid uuid-str)
         doc-tx (try (d/pull (db-now) '[*] [:arb/id uuid])
                     (catch Exception e (.getMessage e)))
+        title (or (:arb/title doc-tx) "Untitled")
         doc-html (tx->html doc-tx)]
     {:status 200
      :headers {"Content-Type" "application/hal+json; charset=utf-8"}
-     :body {:_links {:self (apply str "/documents/" (str uuid-str))}
+     :body {:_links {:self {:href (apply str "/documents/" (str uuid-str))}}
             :_embedded {:id uuid-str
+                        :title title
                         :html doc-html}}}))
 
 (defn remove-arb-root [tx-doc]
@@ -116,20 +119,23 @@
                 :_embedded {:id uuid-str
                             :html doc-html}}}))))
 
-(defn post-doc [doc-string doctype]
+(defn post-doc [doc-string doctype title]
  (let [id (d/squuid)
        tx (-> (html->tx (md-to-html-string doc-string))
               (into {:arb/doctype (keyword "doctype" doctype)})
+              (into {:arb/title (or title "Untitled")})
               (into {:arb/id id}) (edn->clj))
        [tx-result tx-error] (db/transact-or-error [tx])]
    (if (nil? tx-error)
      (let [db-after (:db-after tx-result)
            new-doc (d/pull db-after '[*] [:arb/id id])
+           title (:arb/title new-doc)
            html (-> new-doc (tx->arb) (arb->hiccup) (html))]
        {:status 201
         :headers {"Content-Type" "application/hal+json; charset=utf-8"}
         :body {:_links {:self (apply str "/documents/" (str id))}
                :_embedded {:id id
+                           :title title
                            :doctype doctype
                            :html html}}})
      {:status 500
@@ -138,7 +144,7 @@
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
   (POST "/documents" [:as {body :body}]
-        (post-doc (body :doc-string) (body :doctype)))
+        (post-doc (body :doc-string) (body :doctype) (body :title)))
   (PUT "/documents/:uuid-str" [uuid-str :as {body :body}]
        (put-doc uuid-str (body :doc-string)))
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))

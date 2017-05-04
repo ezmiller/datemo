@@ -50,6 +50,7 @@
       (is (= {:_links {:self "/latest"}
               :_embedded [{:_links {:self (apply str "/documents/" (str id))}
                            :id (str id)
+                           :title "Untitled"
                            :html "<p>note1</p>"}]}
              (parse response)))))
 
@@ -96,12 +97,14 @@
     (try
       (d/transact (get-conn) [{:arb/id id
                          :arb/metadata {:metadata/html-tag :p}
+                         :arb/title "A title"
                          :arb/value {:content/text "test"}}])
       (catch Exception e (.getMessage e)))
     (let [response (app (request :get (str "/documents/" id)))]
       (is (= 200 (:status response)))
-      (is (= {:_links {:self (str "/documents/" id)}
+      (is (= {:_links {:self {:href (str "/documents/" id) } }
               :_embedded {:id (str id)
+                          :title "A title"
                           :html "<p>test</p>"}}
              (-> (parse response)))))))
 
