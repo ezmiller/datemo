@@ -109,30 +109,34 @@
              (-> (parse response)))))))
 
 (deftest test-put-document
-  (testing "PUT /documents/:id"
     (testing "with single node doc"
       (let [id (d/squuid)
-            tx-spec (into {:arb/id id} (html->tx "<div>test</div>"))
-            data {:doc-string "<p>replaced</p>"}
+            tx-spec (-> (html->tx "<div>test</div>")
+                        (into {:arb/id id})
+                        (into {:arb/title "A title"}))
+            data {:doc-string "<p>replaced</p>" :title "A new title"}
             tx-result (d/transact (get-conn) [tx-spec])
             response (app (prep-request :put (str "/documents/" id) data))]
           (is (= 202 (:status response)))
           (is (= {:_links {:self (str "/documents/" id)}
                   :_embedded {:id (str id)
+                              :title "A new title"
                               :html "<p>replaced</p>"}}
                  (-> (parse response))))))
     (testing "with multilevel nodes at top level"
       (let [id (d/squuid)
-            tx-spec (into {:arb/id id}
-                          (html->tx "<div>test</div><div>test2</div>"))
-            data {:doc-string "<p>replaced</p>"}
+            tx-spec (-> (html->tx "<div>test</div><div>test2</div>")
+                        (into {:arb/id id})
+                        (into {:arb/title "A title"}))
+            data {:doc-string "<p>replaced</p>" :title "A new title"}
             tx-result (d/transact (get-conn) [tx-spec])
             response (app (prep-request :put (str "/documents/" id) data))]
           (is (= 202 (:status response)))
           (is (= {:_links {:self (str "/documents/" id)}
                   :_embedded {:id (str id)
+                              :title "A new title"
                               :html "<p>replaced</p>"}}
-                 (-> (parse response))))))))
+                 (-> (parse response)))))))
 
 (deftest test-post-document
   ;; TODO: Add tests for error case.
