@@ -47,8 +47,8 @@
           doc (doc-tx-spec id "note" :p "note1")
           tx (d/transact (get-conn) doc)
           response (app (request :get url))]
-      (is (= {:_links {:self "/latest"}
-              :_embedded [{:_links {:self (apply str "/documents/" (str id))}
+      (is (= {:_links {:self {:href "/latest"}}
+              :_embedded [{:_links {:self {:href (apply str "/documents/" (str id))}}
                            :id (str id)
                            :title "Untitled"
                            :html "<p>note1</p>"}]}
@@ -147,7 +147,7 @@
       (is (= "/documents/"
              (-> (parse response)
                  (:_links)
-                 (->> (:self) (re-find #"/documents/")))))
+                 (->> (:self) (:href) (re-find #"/documents/")))))
       (is (= true (-> (parse response) (:_embedded) (contains? :id))))
       (is (= "note"
              (-> (parse response) (:_embedded) (:doctype))))

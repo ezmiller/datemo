@@ -44,15 +44,15 @@
       (apply str path "?" param-str))))
 
 (defn pagination-links [path page doctype perpage total]
-  (let [links (transient {:self (pagination-link path page doctype perpage)})
-        next-link (pagination-link path (inc page) doctype perpage)
-        prev-link (pagination-link path (dec page) doctype perpage)]
+  (let [links (transient {:self {:href (pagination-link path page doctype perpage)}})
+        next-link {:href (pagination-link path (inc page) doctype perpage)}
+        prev-link {:href (pagination-link path (dec page) doctype perpage)}]
     (if (< (* page perpage) total) (assoc! links :next next-link))
     (if (not= page 1) (assoc! links :previous prev-link))
     (persistent! links)))
 
 (defn get-doc-coll-data [coll]
-  (mapv #(hash-map :_links {:self (apply str "/documents/" (str (:arb/id %)))}
+  (mapv #(hash-map :_links {:self {:href (apply str "/documents/" (str (:arb/id %)))}}
                    :id (:arb/id %)
                    :title (or (:arb/title %) "Untitled")
                    :html (tx->html %)) coll))
@@ -133,7 +133,7 @@
            html (-> new-doc (tx->arb) (arb->hiccup) (html))]
        {:status 201
         :headers {"Content-Type" "application/hal+json; charset=utf-8"}
-        :body {:_links {:self (apply str "/documents/" (str id))}
+        :body {:_links {:self {:href (apply str "/documents/" (str id))}}
                :_embedded {:id id
                            :title title
                            :doctype doctype
