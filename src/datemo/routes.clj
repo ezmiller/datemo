@@ -102,12 +102,13 @@
   (-> (mapv #(retract-entity (:db/id %)) (:arb/value tx-doc))
       (into (mapv #(retract-entity (:db/id %)) (:arb/metadata tx-doc)))))
 
-(defn put-doc [uuid-str doc-string title]
+(defn put-doc [uuid-str doc-string title doctype]
   (def entity-spec [:arb/id (str->uuid uuid-str)])
   (let [found (d/pull (db-now) '[*] entity-spec)
-        update (-> (html->tx doc-string)
+        update (-> (html->tx (md-to-html-string doc-string))
                    (into {:arb/id (str->uuid uuid-str)})
-                   (into {:arb/title title}))]
+                   (into {:arb/title title})
+                   (into {:arb/doctype (keyword "doctype" doctype)}))]
     (if (nil? found)
       {:status 404}
       (let [retractions (remove-arb-root found)
@@ -115,11 +116,13 @@
             update-tx (d/transact (get-conn) [update])
             db-after (:db-after @update-tx)
             doc (d/pull db-after '[*] entity-spec)
+            new-doctype (d/pull db-after '[:db/ident] (:db/id (:arb/doctype doc)))
             doc-html (tx->html doc)]
         {:status 202
          :body {:_links {:self (apply str "/documents/" uuid-str)}
                 :_embedded {:id uuid-str
                             :title (:arb/title doc)
+                            :doctype (name (:db/ident new-doctype))
                             :html doc-html}}}))))
 
 (defn post-doc [doc-string doctype title]
@@ -149,7 +152,7 @@
   (POST "/documents" [:as {body :body}]
         (post-doc (body :doc-string) (body :doctype) (body :title)))
   (PUT "/documents/:uuid-str" [uuid-str :as {body :body}]
-       (put-doc uuid-str (body :doc-string) (body :title)))
+       (put-doc uuid-str (body :doc-string) (body :title) (body :doctype)))
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
   (GET "/latest" [:as request] (latest request))
   (route/not-found "Not found"))
