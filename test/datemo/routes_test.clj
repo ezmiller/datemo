@@ -27,10 +27,10 @@
   `(-> (request ~method ~path (json/generate-string ~data))
        (header "Content-Type" "application/json; charset=utf-8")))
 
-(defmacro doc-tx-spec [id doctype tag value]
+(defmacro doc-tx-spec [id title doctype tag value]
   [{:arb/id id
     :arb/doctype (keyword "doctype" doctype)
-    :arb/metadata {:metadata/html-tag tag}
+    :arb/metadata {:metadata/html-tag tag :metadata/title title}
     :arb/value {:content/text value}}])
 
 (deftest test-get-root
@@ -44,13 +44,13 @@
   (testing "GET /latest?page=1 with one note in db"
     (let [id (d/squuid)
           url (str "/latest?page=1")
-          doc (doc-tx-spec id "note" :p "note1")
+          doc (doc-tx-spec id "A title" "note" :p "note1")
           tx (d/transact (get-conn) doc)
           response (app (request :get url))]
       (is (= {:_links {:self {:href "/latest"}}
               :_embedded [{:_links {:self {:href (apply str "/documents/" (str id))}}
                            :id (str id)
-                           :title "Untitled"
+                           :title "A title"
                            :html "<p>note1</p>"}]}
              (parse response)))))
 
@@ -71,7 +71,7 @@
   (testing "GET /latest?page=2 with 50 notes in db"
     (let [url "/latest?page=2"
           ids (mapv (fn [x] (d/squuid)) (range 50))
-          doc-specs (mapv #(first (doc-tx-spec % "note" :p "test")) ids)
+          doc-specs (mapv #(first (doc-tx-spec % "A title" "note" :p "test")) ids)
           tx (d/transact (get-conn) doc-specs)
           response (app (request :get url))]
       (is (= 200 (:status response)))
@@ -80,7 +80,7 @@
   (testing "GET /latest doctype parameter"
     (let [url "/latest?doctype=essay"
           ids (mapv (fn [x] (d/squuid)) (range 5))
-          doc-specs (mapv #(first (doc-tx-spec % "essay" :p "test")) ids)
+          doc-specs (mapv #(first (doc-tx-spec % "A title" "essay" :p "test")) ids)
           tx (d/transact (get-conn) doc-specs)
           response (app (request :get url))]
       (is (= 5
@@ -96,9 +96,9 @@
     (def id (d/squuid))
     (try
       (d/transact (get-conn) [{:arb/id id
-                         :arb/metadata {:metadata/html-tag :p}
-                         :arb/title "A title"
-                         :arb/value {:content/text "test"}}])
+                               :arb/value {:content/text "test"}
+                               :arb/metadata {:metadata/html-tag :p
+                                              :metadata/title "A title"}}])
       (catch Exception e (.getMessage e)))
     (let [response (app (request :get (str "/documents/" id)))]
       (is (= 200 (:status response)))
@@ -111,9 +111,10 @@
 (deftest test-put-document
     (testing "with single node doc"
       (let [id (d/squuid)
-            tx-spec (-> (html->tx "<div>test</div>")
+            tx-spec (-> (html->tx
+                          "<div>test</div>"
+                          {:metadata/title "A title"})
                         (into {:arb/id id})
-                        (into {:arb/title "A title"})
                         (into {:arb/doctype :doctype/note}))
             data {:doc-string "replaced" :title "A new title" :doctype "note"}
             tx-result (d/transact (get-conn) [tx-spec])
@@ -141,8 +142,7 @@
                               :title "A new title"
                               :doctype "note"
                               :html "<p>replaced</p>"}}
-                 (-> (parse response))))))
-    )
+                 (-> (parse response)))))))
 
 (deftest test-post-document
   ;; TODO: Add tests for error case.
@@ -150,22 +150,23 @@
     (let [data (->> (apply str "# Title  \nParagraph")
                     (array-map :doc-string)
                     (into {:doctype "note"}))
-          response (app (prep-request :post "/documents" data))]
-      (is (= 201 (:status response)))
+          response (app (prep-request :post "/documents" data))
+          body (parse response)
+          status (:status response)
+          headers (:headers response)]
+      (is (= 201 status))
       (is (= {"Content-Type" "application/hal+json; charset=utf-8"}
-             (:headers response)))
+             headers))
       (is (= "/documents/"
-             (-> (parse response)
-                 (:_links)
+             (-> (:_links body)
                  (->> (:self) (:href) (re-find #"/documents/")))))
-      (is (= true (-> (parse response) (:_embedded) (contains? :id))))
-      (is (= "note"
-             (-> (parse response) (:_embedded) (:doctype))))
+      (is (= true (-> (:_embedded body) (contains? :id))))
+      (is (= "note" (-> (:_embedded body) (:doctype))))
+      (is (= "Untitled" (get-in body [:_embedded :title])))
       (is (= "<div><h1>Title</h1><p>Paragraph</p></div>"
              (-> (parse response)
                  (:_embedded)
                  (:html)))))))
-
 
 (deftest test-not-found-route
   (testing "not-found route"

@@ -20,6 +20,12 @@
 (defn str->uuid [uuid-str]
   (java.util.UUID/fromString uuid-str))
 
+(defn get-in-metadata [k metadata]
+  (k (first (filter #(k %) metadata))))
+
+(defn get-title [metadata]
+  (get-in-metadata :metadata/title metadata))
+
 ;; Note: You get an error if the {:readers *data-reader*} bit is not added.
 ;; This seems to relate to the need for data-readers to understand certain
 ;; tags; in this case: :db/id. Datomic installs some data readers for us.
@@ -54,7 +60,7 @@
 (defn get-doc-coll-data [coll]
   (mapv #(hash-map :_links {:self {:href (apply str "/documents/" (str (:arb/id %)))}}
                    :id (:arb/id %)
-                   :title (or (:arb/title %) "Untitled")
+                   :title (or (get-title (:arb/metadata %)) "Untitled")
                    :html (tx->html %)) coll))
 
 ;; Better would be to do this using a paramterized query.
@@ -87,10 +93,10 @@
   "Given a uuid string id, responds with the document if found."
   [uuid-str]
   (let [uuid (str->uuid uuid-str)
-        doc-tx (try (d/pull (db-now) '[*] [:arb/id uuid])
+        doc (try (d/pull (db-now) '[*] [:arb/id uuid])
                     (catch Exception e (.getMessage e)))
-        title (or (:arb/title doc-tx) "Untitled")
-        doc-html (tx->html doc-tx)]
+        title (or (get-title (:arb/metadata doc)) "Untitled")
+        doc-html (tx->html doc)]
     {:status 200
      :headers {"Content-Type" "application/hal+json; charset=utf-8"}
      :body {:_links {:self {:href (apply str "/documents/" (str uuid-str))}}
@@ -105,9 +111,10 @@
 (defn put-doc [uuid-str doc-string title doctype]
   (def entity-spec [:arb/id (str->uuid uuid-str)])
   (let [found (d/pull (db-now) '[*] entity-spec)
-        update (-> (html->tx (md-to-html-string doc-string))
+        update (-> (html->tx
+                     (md-to-html-string doc-string)
+                     {:metadata/title title})
                    (into {:arb/id (str->uuid uuid-str)})
-                   (into {:arb/title title})
                    (into {:arb/doctype (keyword "doctype" doctype)}))]
     (if (nil? found)
       {:status 404}
@@ -121,22 +128,25 @@
         {:status 202
          :body {:_links {:self (apply str "/documents/" uuid-str)}
                 :_embedded {:id uuid-str
-                            :title (:arb/title doc)
+                            :title (get-title (:arb/metadata doc))
                             :doctype (name (:db/ident new-doctype))
                             :html doc-html}}}))))
 
 (defn post-doc [doc-string doctype title]
  (let [id (d/squuid)
-       tx (-> (html->tx (md-to-html-string doc-string))
+       tx (-> (html->tx
+                (md-to-html-string doc-string)
+                {:metadata/title (or title "Untitled")})
               (into {:arb/doctype (keyword "doctype" doctype)})
-              (into {:arb/title (or title "Untitled")})
               (into {:arb/id id}) (edn->clj))
        [tx-result tx-error] (db/transact-or-error [tx])]
+   ;; (pprint {:tx tx :tx-result tx-result :tx-error tx-error})
    (if (nil? tx-error)
      (let [db-after (:db-after tx-result)
            new-doc (d/pull db-after '[*] [:arb/id id])
-           title (:arb/title new-doc)
+           title (get-title (:arb/metadata new-doc))
            html (-> new-doc (tx->arb) (arb->hiccup) (html))]
+       ;; (pprint {:new-doc new-doc})
        {:status 201
         :headers {"Content-Type" "application/hal+json; charset=utf-8"}
         :body {:_links {:self {:href (apply str "/documents/" (str id))}}

@@ -43,8 +43,9 @@
            :arb/value (conj values (arb->tx (first items)))}
           (recur (conj values (arb->tx (first items))) (next items)))))))
 
-(defn html->tx [html]
-  (-> html (html->arb) (arb->tx)))
+(defn html->tx [html & metadata]
+  (let [tx (-> html (html->arb) (arb->tx))]
+    (assoc tx :arb/metadata (into (:arb/metadata tx) metadata))))
 
 (defn tx->arb [tx]
   (let [{metadata :arb/metadata value :arb/value} tx]
