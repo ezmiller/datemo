@@ -2,6 +2,8 @@
   :db/valueType        :db.type/string
   :db/cardinality      :db.cardinality/one
   :db/index            true}
+
+ ;; metadata attributes
  {:db/ident            :metadata/html-tag
   :db/valueType        :db.type/keyword
   :db/cardinality      :db.cardinality/one}
@@ -14,6 +16,8 @@
   :db/doc              "Describes the 'type' of document."}
  {:db/ident            :doctype/note}
  {:db/ident            :doctype/essay}
+
+ ;; arb attributes
  {:db/ident            :arb/id
   :db/valueType        :db.type/uuid
   :db/cardinality      :db.cardinality/one
