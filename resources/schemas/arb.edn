@@ -8,10 +8,10 @@
  {:db/ident            :metadata/title
   :db/valueType        :db.type/string
   :db/cardinality      :db.cardinality/one}
- {:db/ident            :arb/doctype
+ {:db/ident            :metadata/doctype
   :db/valueType        :db.type/ref
   :db/cardinality      :db.cardinality/one
-  :db/doc              "A descriptor of the 'kind' of document."}
+  :db/doc              "Describes the 'type' of document."}
  {:db/ident            :doctype/note}
  {:db/ident            :doctype/essay}
  {:db/ident            :arb/id

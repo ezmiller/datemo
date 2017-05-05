@@ -29,9 +29,10 @@
 
 (defmacro doc-tx-spec [id title doctype tag value]
   [{:arb/id id
-    :arb/doctype (keyword "doctype" doctype)
-    :arb/metadata {:metadata/html-tag tag :metadata/title title}
-    :arb/value {:content/text value}}])
+    :arb/value {:content/text value}
+    :arb/metadata {:metadata/html-tag tag
+                   :metadata/title title
+                   :metadata/doctype (keyword "doctype" doctype)}}])
 
 (deftest test-get-root
   (testing "GET /"
@@ -51,6 +52,7 @@
               :_embedded [{:_links {:self {:href (apply str "/documents/" (str id))}}
                            :id (str id)
                            :title "A title"
+                           :doctype "note"
                            :html "<p>note1</p>"}]}
              (parse response)))))
 
@@ -98,6 +100,7 @@
       (d/transact (get-conn) [{:arb/id id
                                :arb/value {:content/text "test"}
                                :arb/metadata {:metadata/html-tag :p
+                                              :metadata/doctype :doctype/note
                                               :metadata/title "A title"}}])
       (catch Exception e (.getMessage e)))
     (let [response (app (request :get (str "/documents/" id)))]
@@ -105,25 +108,22 @@
       (is (= {:_links {:self {:href (str "/documents/" id) } }
               :_embedded {:id (str id)
                           :title "A title"
+                          :doctype "note"
                           :html "<p>test</p>"}}
              (-> (parse response)))))))
 
 (deftest test-put-document
     (testing "with single node doc"
       (let [id (d/squuid)
-            tx-spec (-> (html->tx
-                          "<div>test</div>"
-                          {:metadata/title "A title"})
-                        (into {:arb/id id})
-                        (into {:arb/doctype :doctype/note}))
-            data {:doc-string "replaced" :title "A new title" :doctype "note"}
+            tx-spec (doc-tx-spec (d/squuid) "A title" "note" :div "test")
+            data {:doc-string "replaced" :title "A new title" :doctype "essay"}
             tx-result (d/transact (get-conn) [tx-spec])
             response (app (prep-request :put (str "/documents/" id) data))]
           (is (= 202 (:status response)))
           (is (= {:_links {:self (str "/documents/" id)}
                   :_embedded {:id (str id)
                               :title "A new title"
-                              :doctype "note"
+                              :doctype "essay"
                               :html "<p>replaced</p>"}}
                  (-> (parse response))))))
 
@@ -142,7 +142,8 @@
                               :title "A new title"
                               :doctype "note"
                               :html "<p>replaced</p>"}}
-                 (-> (parse response)))))))
+                 (-> (parse response))))))
+    )
 
 (deftest test-post-document
   ;; TODO: Add tests for error case.

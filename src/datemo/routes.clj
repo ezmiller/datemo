@@ -26,6 +26,13 @@
 (defn get-title [metadata]
   (get-in-metadata :metadata/title metadata))
 
+(defn get-doctype [metadata]
+  (-> (get-in-metadata :metadata/doctype metadata)
+      (:db/id)
+      (db/pull-entity)
+      (:db/ident)
+      (name)))
+
 ;; Note: You get an error if the {:readers *data-reader*} bit is not added.
 ;; This seems to relate to the need for data-readers to understand certain
 ;; tags; in this case: :db/id. Datomic installs some data readers for us.
@@ -61,16 +68,21 @@
   (mapv #(hash-map :_links {:self {:href (apply str "/documents/" (str (:arb/id %)))}}
                    :id (:arb/id %)
                    :title (or (get-title (:arb/metadata %)) "Untitled")
+                   :doctype (get-doctype (:arb/metadata %))
                    :html (tx->html %)) coll))
 
 ;; Better would be to do this using a paramterized query.
 ;; E.g. [:find (pull ?e [*]) :in [$ ?doctype] :where [?e :arb/doctype ?doctype]]
 (defn latest-query
-  ([] '[:find (pull ?e [*]) :where [?e :arb/doctype]])
+  ([]
+   '[:find (pull ?doc [*])
+        :where [?meta :metadata/doctype]
+               [?doc :arb/metadata ?meta]])
   ([doctype]
    (let [doctype-val (keyword "doctype" doctype)]
-    [:find '(pull ?e [*])
-      :where ['?e ':arb/doctype doctype-val]])))
+    [:find '(pull ?doc [*])
+      :where ['?meta ':metadata/doctype doctype-val]
+             ['?doc ':arb/metadata '?meta]])))
 
 (defn latest [req]
   (let [page (->> (or (get-in req [:params :page]) "1") (parse-int))
@@ -96,12 +108,14 @@
         doc (try (d/pull (db-now) '[*] [:arb/id uuid])
                     (catch Exception e (.getMessage e)))
         title (or (get-title (:arb/metadata doc)) "Untitled")
+        doctype (get-doctype (:arb/metadata doc))
         doc-html (tx->html doc)]
     {:status 200
      :headers {"Content-Type" "application/hal+json; charset=utf-8"}
      :body {:_links {:self {:href (apply str "/documents/" (str uuid-str))}}
             :_embedded {:id uuid-str
                         :title title
+                        :doctype doctype
                         :html doc-html}}}))
 
 (defn remove-arb-root [tx-doc]
@@ -113,9 +127,9 @@
   (let [found (d/pull (db-now) '[*] entity-spec)
         update (-> (html->tx
                      (md-to-html-string doc-string)
-                     {:metadata/title title})
-                   (into {:arb/id (str->uuid uuid-str)})
-                   (into {:arb/doctype (keyword "doctype" doctype)}))]
+                     {:metadata/title title}
+                     {:metadata/doctype (keyword "doctype" doctype)})
+                   (into {:arb/id (str->uuid uuid-str)}))]
     (if (nil? found)
       {:status 404}
       (let [retractions (remove-arb-root found)
@@ -123,36 +137,34 @@
             update-tx (d/transact (get-conn) [update])
             db-after (:db-after @update-tx)
             doc (d/pull db-after '[*] entity-spec)
-            new-doctype (d/pull db-after '[:db/ident] (:db/id (:arb/doctype doc)))
             doc-html (tx->html doc)]
         {:status 202
          :body {:_links {:self (apply str "/documents/" uuid-str)}
                 :_embedded {:id uuid-str
                             :title (get-title (:arb/metadata doc))
-                            :doctype (name (:db/ident new-doctype))
+                            :doctype (get-doctype (:arb/metadata doc))
                             :html doc-html}}}))))
 
 (defn post-doc [doc-string doctype title]
  (let [id (d/squuid)
        tx (-> (html->tx
                 (md-to-html-string doc-string)
-                {:metadata/title (or title "Untitled")})
-              (into {:arb/doctype (keyword "doctype" doctype)})
+                {:metadata/title (or title "Untitled")}
+                {:metadata/doctype (keyword "doctype" doctype)})
               (into {:arb/id id}) (edn->clj))
        [tx-result tx-error] (db/transact-or-error [tx])]
    ;; (pprint {:tx tx :tx-result tx-result :tx-error tx-error})
    (if (nil? tx-error)
      (let [db-after (:db-after tx-result)
            new-doc (d/pull db-after '[*] [:arb/id id])
-           title (get-title (:arb/metadata new-doc))
            html (-> new-doc (tx->arb) (arb->hiccup) (html))]
        ;; (pprint {:new-doc new-doc})
        {:status 201
         :headers {"Content-Type" "application/hal+json; charset=utf-8"}
         :body {:_links {:self {:href (apply str "/documents/" (str id))}}
                :_embedded {:id id
-                           :title title
-                           :doctype doctype
+                           :title (get-title (:arb/metadata new-doc))
+                           :doctype (get-doctype (:arb/metadata new-doc))
                            :html html}}})
      {:status 500
       :body {:error (apply str "Error posting: " tx-error)}})))
