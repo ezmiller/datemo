@@ -3,6 +3,9 @@
   (:use hickory.core
         hiccup.core))
 
+(defn get-in-metadata [k metadata]
+  (k (first (filter #(k %) metadata))))
+
 (defn html->hiccup
   ([html] (as-hiccup (parse html)))
   ([html as-fragment]
@@ -51,7 +54,7 @@
   (let [{metadata :arb/metadata value :arb/value} tx]
     (if (and (= 1 (count value)) (not (nil? (:content/text (first value)))))
       [:arb
-       {:original-tag (:metadata/html-tag (first metadata))}
+       {:original-tag (get-in-metadata :metadata/html-tag metadata)}
        (:content/text (first value))]
       (loop [arbs [], items value]
         (if (= 0 (count items))

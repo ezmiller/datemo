@@ -27,11 +27,12 @@
   `(-> (request ~method ~path (json/generate-string ~data))
        (header "Content-Type" "application/json; charset=utf-8")))
 
-(defmacro doc-tx-spec [id title doctype tag value]
+(defmacro doc-tx-spec [id title doctype tag value tags]
   [{:arb/id id
     :arb/value {:content/text value}
     :arb/metadata {:metadata/html-tag tag
                    :metadata/title title
+                   :metadata/tags (mapv #(array-map :metadata/tag (keyword %)) tags)
                    :metadata/doctype (keyword "doctype" doctype)}}])
 
 (deftest test-get-root
@@ -45,13 +46,14 @@
   (testing "GET /latest?page=1 with one note in db"
     (let [id (d/squuid)
           url (str "/latest?page=1")
-          doc (doc-tx-spec id "A title" "note" :p "note1")
+          doc (doc-tx-spec id "A title" "note" :p "note1" ["tag1"])
           tx (d/transact (get-conn) doc)
           response (app (request :get url))]
       (is (= {:_links {:self {:href "/latest"}}
               :_embedded [{:_links {:self {:href (apply str "/documents/" (str id))}}
                            :id (str id)
                            :title "A title"
+                           :tags ["tag1"]
                            :doctype "note"
                            :html "<p>note1</p>"}]}
              (parse response)))))
@@ -73,7 +75,7 @@
   (testing "GET /latest?page=2 with 50 notes in db"
     (let [url "/latest?page=2"
           ids (mapv (fn [x] (d/squuid)) (range 50))
-          doc-specs (mapv #(first (doc-tx-spec % "A title" "note" :p "test")) ids)
+          doc-specs (mapv #(first (doc-tx-spec % "A title" "note" :p "test" [])) ids)
           tx (d/transact (get-conn) doc-specs)
           response (app (request :get url))]
       (is (= 200 (:status response)))
@@ -82,7 +84,7 @@
   (testing "GET /latest doctype parameter"
     (let [url "/latest?doctype=essay"
           ids (mapv (fn [x] (d/squuid)) (range 5))
-          doc-specs (mapv #(first (doc-tx-spec % "A title" "essay" :p "test")) ids)
+          doc-specs (mapv #(first (doc-tx-spec % "A title" "essay" :p "test" [])) ids)
           tx (d/transact (get-conn) doc-specs)
           response (app (request :get url))]
       (is (= 5
@@ -101,6 +103,7 @@
                                :arb/value {:content/text "test"}
                                :arb/metadata {:metadata/html-tag :p
                                               :metadata/doctype :doctype/note
+                                              :metadata/tags [{:metadata/tag :tag1}]
                                               :metadata/title "A title"}}])
       (catch Exception e (.getMessage e)))
     (let [response (app (request :get (str "/documents/" id)))]
@@ -108,6 +111,7 @@
       (is (= {:_links {:self {:href (str "/documents/" id) } }
               :_embedded {:id (str id)
                           :title "A title"
+                          :tags ["tag1"]
                           :doctype "note"
                           :html "<p>test</p>"}}
              (-> (parse response)))))))
@@ -115,42 +119,29 @@
 (deftest test-put-document
     (testing "with single node doc"
       (let [id (d/squuid)
-            tx-spec (doc-tx-spec (d/squuid) "A title" "note" :div "test")
-            data {:doc-string "replaced" :title "A new title" :doctype "essay"}
-            tx-result (d/transact (get-conn) [tx-spec])
+            tx-spec (doc-tx-spec id "A title" "note" :div "test" ["tag1"])
+            data {:doc-string "replaced"
+                  :title "A new title"
+                  :doctype "essay"
+                  :tags ["tag2"]}
+            tx-result (d/transact (get-conn) tx-spec)
             response (app (prep-request :put (str "/documents/" id) data))]
-          (is (= 202 (:status response)))
-          (is (= {:_links {:self (str "/documents/" id)}
-                  :_embedded {:id (str id)
-                              :title "A new title"
-                              :doctype "essay"
-                              :html "<p>replaced</p>"}}
-                 (-> (parse response))))))
-
-    (testing "with multilevel nodes at top level"
-      (let [id (d/squuid)
-            tx-spec (-> (html->tx "<div>test</div><div>test2</div>")
-                        (into {:arb/id id})
-                        (into {:arb/title "A title"})
-                        (into {:arb/doctype :doctype/note}))
-            data {:doc-string "replaced" :title "A new title" :doctype "note"}
-            tx-result (d/transact (get-conn) [tx-spec])
-            response (app (prep-request :put (str "/documents/" id) data))]
-          (is (= 202 (:status response)))
-          (is (= {:_links {:self (str "/documents/" id)}
-                  :_embedded {:id (str id)
-                              :title "A new title"
-                              :doctype "note"
-                              :html "<p>replaced</p>"}}
-                 (-> (parse response))))))
-    )
+        (is (= 202 (:status response)))
+        (is (= {:_links {:self (str "/documents/" id)}
+                :_embedded {:id (str id)
+                            :title "A new title"
+                            :doctype "essay"
+                            :tags ["tag2"]
+                            :html "<p>replaced</p>"}}
+               (-> (parse response)))))))
 
 (deftest test-post-document
   ;; TODO: Add tests for error case.
   (testing "POST /documents"
     (let [data (->> (apply str "# Title  \nParagraph")
                     (array-map :doc-string)
-                    (into {:doctype "note"}))
+                    (into {:doctype "note"})
+                    (into {:tags ["tag1" "tag2"]}))
           response (app (prep-request :post "/documents" data))
           body (parse response)
           status (:status response)
@@ -164,6 +155,7 @@
       (is (= true (-> (:_embedded body) (contains? :id))))
       (is (= "note" (-> (:_embedded body) (:doctype))))
       (is (= "Untitled" (get-in body [:_embedded :title])))
+      (is (= ["tag1" "tag2"] (get-in body [:_embedded :tags])))
       (is (= "<div><h1>Title</h1><p>Paragraph</p></div>"
              (-> (parse response)
                  (:_embedded)

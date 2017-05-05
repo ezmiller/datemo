@@ -4,6 +4,15 @@
   :db/index            true}
 
  ;; metadata attributes
+ {:db/ident            :metadata/empty}
+ {:db/ident            :metadata/tags
+  :db/valueType        :db.type/ref
+  :db/cardinality      :db.cardinality/many
+  :db/isComponent      true}
+ {:db/ident            :metadata/tag
+  :db/valueType        :db.type/keyword
+  :db/cardinality      :db.cardinality/one
+  :db/index            true}
  {:db/ident            :metadata/html-tag
   :db/valueType        :db.type/keyword
   :db/cardinality      :db.cardinality/one}

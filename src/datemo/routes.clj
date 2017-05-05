@@ -5,6 +5,7 @@
         datemo.arb
         datemo.db)
   (:require [clojure.edn :as edn]
+            [clojure.string :as s]
             [compojure.route :as route]
             [ring.middleware.json :refer :all]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
@@ -20,8 +21,8 @@
 (defn str->uuid [uuid-str]
   (java.util.UUID/fromString uuid-str))
 
-(defn get-in-metadata [k metadata]
-  (k (first (filter #(k %) metadata))))
+(defn is-empty-metadata [entity]
+  (= :metadata/empty (:db/ident entity)))
 
 (defn get-title [metadata]
   (get-in-metadata :metadata/title metadata))
@@ -32,6 +33,17 @@
       (db/pull-entity)
       (:db/ident)
       (name)))
+
+(defn get-tags [metadata]
+  (def tags (get-in-metadata :metadata/tags metadata))
+  (if (or (nil? tags) (is-empty-metadata (first tags)))
+    []
+    (mapv #(name (:metadata/tag %)) tags)))
+
+(defn gen-tags-meta [tags]
+  (if (empty? tags)
+    {:metadata/tags :metadata/empty}
+    {:metadata/tags (mapv #(array-map :metadata/tag (keyword (s/trim %))) tags)}))
 
 ;; Note: You get an error if the {:readers *data-reader*} bit is not added.
 ;; This seems to relate to the need for data-readers to understand certain
@@ -68,6 +80,7 @@
   (mapv #(hash-map :_links {:self {:href (apply str "/documents/" (str (:arb/id %)))}}
                    :id (:arb/id %)
                    :title (or (get-title (:arb/metadata %)) "Untitled")
+                   :tags (or (get-tags (:arb/metadata %)) [])
                    :doctype (get-doctype (:arb/metadata %))
                    :html (tx->html %)) coll))
 
@@ -108,6 +121,7 @@
         doc (try (d/pull (db-now) '[*] [:arb/id uuid])
                     (catch Exception e (.getMessage e)))
         title (or (get-title (:arb/metadata doc)) "Untitled")
+        tags (or (get-tags (:arb/metadata doc)) [])
         doctype (get-doctype (:arb/metadata doc))
         doc-html (tx->html doc)]
     {:status 200
@@ -115,6 +129,7 @@
      :body {:_links {:self {:href (apply str "/documents/" (str uuid-str))}}
             :_embedded {:id uuid-str
                         :title title
+                        :tags tags
                         :doctype doctype
                         :html doc-html}}}))
 
@@ -122,15 +137,19 @@
   (-> (mapv #(retract-entity (:db/id %)) (:arb/value tx-doc))
       (into (mapv #(retract-entity (:db/id %)) (:arb/metadata tx-doc)))))
 
-(defn put-doc [uuid-str doc-string title doctype]
+(defn is-empty-result [result]
+  (= {:db/id nil} result))
+
+(defn put-doc [uuid-str doc-string title doctype tags]
   (def entity-spec [:arb/id (str->uuid uuid-str)])
   (let [found (d/pull (db-now) '[*] entity-spec)
         update (-> (html->tx
                      (md-to-html-string doc-string)
                      {:metadata/title title}
-                     {:metadata/doctype (keyword "doctype" doctype)})
+                     {:metadata/doctype (keyword "doctype" doctype)}
+                     (gen-tags-meta tags))
                    (into {:arb/id (str->uuid uuid-str)}))]
-    (if (nil? found)
+    (if (is-empty-result found)
       {:status 404}
       (let [retractions (remove-arb-root found)
             retract-tx (d/transact (get-conn) retractions)
@@ -143,28 +162,29 @@
                 :_embedded {:id uuid-str
                             :title (get-title (:arb/metadata doc))
                             :doctype (get-doctype (:arb/metadata doc))
+                            :tags (get-tags (:arb/metadata doc db-after))
                             :html doc-html}}}))))
 
-(defn post-doc [doc-string doctype title]
+(defn post-doc [doc-string doctype title tags]
  (let [id (d/squuid)
        tx (-> (html->tx
                 (md-to-html-string doc-string)
                 {:metadata/title (or title "Untitled")}
-                {:metadata/doctype (keyword "doctype" doctype)})
+                {:metadata/doctype (keyword "doctype" doctype)}
+                (gen-tags-meta tags))
               (into {:arb/id id}) (edn->clj))
        [tx-result tx-error] (db/transact-or-error [tx])]
-   ;; (pprint {:tx tx :tx-result tx-result :tx-error tx-error})
    (if (nil? tx-error)
      (let [db-after (:db-after tx-result)
            new-doc (d/pull db-after '[*] [:arb/id id])
            html (-> new-doc (tx->arb) (arb->hiccup) (html))]
-       ;; (pprint {:new-doc new-doc})
        {:status 201
         :headers {"Content-Type" "application/hal+json; charset=utf-8"}
         :body {:_links {:self {:href (apply str "/documents/" (str id))}}
                :_embedded {:id id
                            :title (get-title (:arb/metadata new-doc))
                            :doctype (get-doctype (:arb/metadata new-doc))
+                           :tags (get-tags (:arb/metadata new-doc))
                            :html html}}})
      {:status 500
       :body {:error (apply str "Error posting: " tx-error)}})))
@@ -172,9 +192,9 @@
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
   (POST "/documents" [:as {body :body}]
-        (post-doc (body :doc-string) (body :doctype) (body :title)))
+        (post-doc (body :doc-string) (body :doctype) (body :title) (body :tags)))
   (PUT "/documents/:uuid-str" [uuid-str :as {body :body}]
-       (put-doc uuid-str (body :doc-string) (body :title) (body :doctype)))
+       (put-doc uuid-str (body :doc-string) (body :title) (body :doctype) (body :tags)))
   (GET "/documents/:uuid-str" [uuid-str] (get-doc uuid-str))
   (GET "/latest" [:as request] (latest request))
   (route/not-found "Not found"))
