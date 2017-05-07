@@ -100,6 +100,8 @@
 (defn add-value [entity-spec attribute value]
   [:db/add entity-spec attribute value])
 
+(defn get-eid [entity-spec]
+  (:db/id (d/entity (db-now) entity-spec)))
 
 ;: Pull
 
@@ -115,9 +117,13 @@
 
 ;; Querys
 
-(defn q-or-error [query]
-  (try [(d/q query (db-now)) nil]
+(defn q-or-error [query & inputs]
+  (try [(apply d/q query (db-now) inputs) nil]
        (catch Exception e
          [nil (.getMessage e)])))
 
+(defn q-hist-or-error [query & inputs]
+  (try [(apply d/q query (d/history (db-now)) inputs) nil]
+       (catch Exception e
+         [nil (.getMessage e)])))
 

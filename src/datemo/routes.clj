@@ -15,6 +15,9 @@
 
 (require '[clojure.pprint :refer [pprint]])
 
+(defn has-error [error]
+  (not (nil? error)))
+
 (defn parse-int [s]
    (Integer. (re-find  #"\d+" s )))
 
@@ -42,8 +45,29 @@
 
 (defn gen-tags-meta [tags]
   (if (empty? tags)
-    {:metadata/tags :metadata/empty}
+    {:metadata/tags [:metadata/empty]}
     {:metadata/tags (mapv #(array-map :metadata/tag (keyword (s/trim %))) tags)}))
+
+(defn get-updated-at [arb-id]
+  (let [eid (db/get-eid [:arb/id arb-id])
+        [result error] (q-hist-or-error '[:find (max ?t)
+                                          :in $ ?e
+                                          :where
+                                          [?e _ _ ?tx]
+                                          [?tx :db/txInstant ?t]] eid)]
+    (if (has-error error)
+      nil
+      (->> result (first) (first) (str)))))
+
+(defn get-created-at [arb-id]
+  (let [[result error] (q-or-error '[:find ?t
+                                     :in $ ?id
+                                     :where
+                                     [?e :arb/id ?id ?tx]
+                                     [?tx :db/txInstant ?t]] arb-id)]
+    (if (has-error error)
+      nil
+      (->> result (first) (first) (str)))))
 
 ;; Note: You get an error if the {:readers *data-reader*} bit is not added.
 ;; This seems to relate to the need for data-readers to understand certain
@@ -82,6 +106,7 @@
                    :title (or (get-title (:arb/metadata %)) "Untitled")
                    :tags (or (get-tags (:arb/metadata %)) [])
                    :doctype (get-doctype (:arb/metadata %))
+                   :created-at (get-created-at (:arb/id %))
                    :html (tx->html %)) coll))
 
 ;; Better would be to do this using a paramterized query.
@@ -130,6 +155,8 @@
             :_embedded {:id uuid-str
                         :title title
                         :tags tags
+                        :created-at (get-created-at uuid)
+                        :updated-at (get-updated-at uuid)
                         :doctype doctype
                         :html doc-html}}}))
 
@@ -162,6 +189,8 @@
                 :_embedded {:id uuid-str
                             :title (get-title (:arb/metadata doc))
                             :doctype (get-doctype (:arb/metadata doc))
+                            :created-at (get-created-at (str->uuid uuid-str))
+                            :updated-at (get-updated-at (str->uuid uuid-str))
                             :tags (get-tags (:arb/metadata doc db-after))
                             :html doc-html}}}))))
 
@@ -184,6 +213,8 @@
                :_embedded {:id id
                            :title (get-title (:arb/metadata new-doc))
                            :doctype (get-doctype (:arb/metadata new-doc))
+                           :created-at (get-created-at id)
+                           :updated-at (get-updated-at id)
                            :tags (get-tags (:arb/metadata new-doc))
                            :html html}}})
      {:status 500

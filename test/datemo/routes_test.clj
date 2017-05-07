@@ -48,12 +48,14 @@
           url (str "/latest?page=1")
           doc (doc-tx-spec id "A title" "note" :p "note1" ["tag1"])
           tx (d/transact (get-conn) doc)
+          [_ _ tx-inst] (first (:tx-data @tx))
           response (app (request :get url))]
       (is (= {:_links {:self {:href "/latest"}}
               :_embedded [{:_links {:self {:href (apply str "/documents/" (str id))}}
                            :id (str id)
                            :title "A title"
                            :tags ["tag1"]
+                           :created-at (str tx-inst)
                            :doctype "note"
                            :html "<p>note1</p>"}]}
              (parse response)))))
@@ -98,21 +100,23 @@
 (deftest test-get-document-by-id
   (testing "GET /documents/:id"
     (def id (d/squuid))
-    (try
-      (d/transact (get-conn) [{:arb/id id
-                               :arb/value {:content/text "test"}
-                               :arb/metadata {:metadata/html-tag :p
-                                              :metadata/doctype :doctype/note
-                                              :metadata/tags [{:metadata/tag :tag1}]
-                                              :metadata/title "A title"}}])
-      (catch Exception e (.getMessage e)))
-    (let [response (app (request :get (str "/documents/" id)))]
+    (def tx-spec [{:arb/id id
+                   :arb/value {:content/text "test"}
+                   :arb/metadata {:metadata/html-tag :p
+                                  :metadata/doctype :doctype/note
+                                  :metadata/tags [{:metadata/tag :tag1}]
+                                  :metadata/title "A title"}}])
+    (let [tx (d/transact (get-conn) tx-spec)
+          [_ _ tx-inst] (first (:tx-data @tx))
+          response (app (request :get (str "/documents/" id)))]
       (is (= 200 (:status response)))
       (is (= {:_links {:self {:href (str "/documents/" id) } }
               :_embedded {:id (str id)
                           :title "A title"
                           :tags ["tag1"]
                           :doctype "note"
+                          :created-at (str tx-inst)
+                          :updated-at (str tx-inst)
                           :html "<p>test</p>"}}
              (-> (parse response)))))))
 
@@ -125,15 +129,19 @@
                   :doctype "essay"
                   :tags ["tag2"]}
             tx-result (d/transact (get-conn) tx-spec)
-            response (app (prep-request :put (str "/documents/" id) data))]
+            [_ _ tx-inst] (first (:tx-data @tx-result))
+            response (app (prep-request :put (str "/documents/" id) data))
+            body (parse response)]
         (is (= 202 (:status response)))
-        (is (= {:_links {:self (str "/documents/" id)}
-                :_embedded {:id (str id)
-                            :title "A new title"
-                            :doctype "essay"
-                            :tags ["tag2"]
-                            :html "<p>replaced</p>"}}
-               (-> (parse response)))))))
+        (is (= (str "/documents/" id) (get-in body [:_links :self ])))
+        (is (= (str id) (get-in body [:_embedded :id])))
+        (is (= "A new title" (get-in body [:_embedded :title])))
+        (is (= "essay" (get-in body [:_embedded :doctype])))
+        (is (= ["tag2"] (get-in body [:_embedded :tags])))
+        (is (= (str tx-inst) (get-in body [:_embedded :created-at])))
+        (is (contains? (get-in body [:_embedded]) :updated-at))
+        (is (not= nil (get-in body [:_embedded :updated-at])))
+        (is (= "<p>replaced</p>" (get-in body [:_embedded :html]))))))
 
 (deftest test-post-document
   ;; TODO: Add tests for error case.
@@ -156,10 +164,10 @@
       (is (= "note" (-> (:_embedded body) (:doctype))))
       (is (= "Untitled" (get-in body [:_embedded :title])))
       (is (= ["tag1" "tag2"] (get-in body [:_embedded :tags])))
+      (is (= false (nil? (get-in body [:_embedded :created-at]))))
+      (is (= false (nil? (get-in body [:_embedded :updated-at]))))
       (is (= "<div><h1>Title</h1><p>Paragraph</p></div>"
-             (-> (parse response)
-                 (:_embedded)
-                 (:html)))))))
+             (get-in body [:_embedded :html]))))))
 
 (deftest test-not-found-route
   (testing "not-found route"
