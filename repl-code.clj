@@ -25,6 +25,10 @@
 
 (def db (client/db conn))
 
+;;
+(d/delete-database "datomic:dev://localhost:4334/datemo")
+(d/create-database "datomic:dev://localhost:4334/datemo")
+
 
 ;; for datomic api
 (require '[datomic.api :as d])
@@ -35,6 +39,7 @@
 ;; for installing the schema
 ;; run lein-repl, then:
 (use 'datemo.db)
+(require '[datomic.api :as d])
 (-> (load-schema "schemas/arb.edn")
     (install-schema (get-conn)))
 
