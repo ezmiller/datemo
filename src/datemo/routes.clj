@@ -25,7 +25,7 @@
   (java.util.UUID/fromString uuid-str))
 
 (defn is-empty-metadata [entity]
-  (= :metadata/empty (:db/ident entity)))
+  (= :metadata/empty (:db/ident (pull-entity (:db/id entity)))))
 
 (defn get-title [metadata]
   (get-in-metadata :metadata/title metadata))
@@ -45,7 +45,7 @@
 
 (defn gen-tags-meta [tags]
   (if (empty? tags)
-    {:metadata/tags [:metadata/empty]}
+    {:metadata/tags :metadata/empty}
     {:metadata/tags (mapv #(array-map :metadata/tag (keyword (s/trim %))) tags)}))
 
 (defn get-updated-at [arb-id]
@@ -57,7 +57,7 @@
                                           [?tx :db/txInstant ?t]] eid)]
     (if (has-error error)
       nil
-      (->> result (first) (first) (str)))))
+      (->> result (first) (first)))))
 
 (defn get-created-at [arb-id]
   (let [[result error] (q-or-error '[:find ?t
@@ -67,7 +67,7 @@
                                      [?tx :db/txInstant ?t]] arb-id)]
     (if (has-error error)
       nil
-      (->> result (first) (first) (str)))))
+      (->> result (first) (first)))))
 
 ;; Note: You get an error if the {:readers *data-reader*} bit is not added.
 ;; This seems to relate to the need for data-readers to understand certain
@@ -107,6 +107,7 @@
                    :tags (or (get-tags (:arb/metadata %)) [])
                    :doctype (get-doctype (:arb/metadata %))
                    :created-at (get-created-at (:arb/id %))
+                   :updated-at (get-updated-at (:arb/id %))
                    :html (tx->html %)) coll))
 
 ;; Better would be to do this using a paramterized query.
