@@ -40,6 +40,7 @@
 ;; run lein-repl, then:
 (use 'datemo.db)
 (require '[datomic.api :as d])
+(init-db)
 (-> (load-schema "schemas/arb.edn")
     (install-schema (get-conn)))
 
