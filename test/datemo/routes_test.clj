@@ -1,5 +1,7 @@
 (ns datemo.routes-test
   (:require [cheshire.core :as json :refer [parse-string]]
+            [clj-time.core :as t]
+            [clj-time.coerce :as c]
             [datomic.api :as d])
   (:use clojure.test
         ring.mock.request
@@ -55,7 +57,8 @@
                            :id (str id)
                            :title "A title"
                            :tags ["tag1"]
-                           :created-at (str tx-inst)
+                           :created-at (c/to-string tx-inst)
+                           :updated-at (c/to-string tx-inst)
                            :doctype "note"
                            :html "<p>note1</p>"}]}
              (parse response)))))
@@ -115,8 +118,8 @@
                           :title "A title"
                           :tags ["tag1"]
                           :doctype "note"
-                          :created-at (str tx-inst)
-                          :updated-at (str tx-inst)
+                          :created-at (c/to-string tx-inst)
+                          :updated-at (c/to-string tx-inst)
                           :html "<p>test</p>"}}
              (-> (parse response)))))))
 
@@ -138,7 +141,9 @@
         (is (= "A new title" (get-in body [:_embedded :title])))
         (is (= "essay" (get-in body [:_embedded :doctype])))
         (is (= ["tag2"] (get-in body [:_embedded :tags])))
-        (is (= (str tx-inst) (get-in body [:_embedded :created-at])))
+        (is (t/equal?
+              (c/from-date tx-inst)
+              (c/from-string (get-in body [:_embedded :created-at]))))
         (is (contains? (get-in body [:_embedded]) :updated-at))
         (is (not= nil (get-in body [:_embedded :updated-at])))
         (is (= "<p>replaced</p>" (get-in body [:_embedded :html]))))))
