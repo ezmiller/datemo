@@ -69,6 +69,9 @@
 (defn db-now []
   (d/db (:conn @db-atom)))
 
+(defn hist-db-now []
+  (d/db (:conn @db-atom)))
+
 (defn install-schema
   "Attempts to transact a schema. If sucessful, returns tx promise;
    otherwise, error."
