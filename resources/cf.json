@@ -1,0 +1,125 @@
+{"Resources":
+ {"LaunchGroup":
+  {"Type":"AWS::AutoScaling::AutoScalingGroup",
+   "Properties":
+   {"MinSize":{"Ref":"GroupSize"},
+    "Tags":
+    [{"Key":"Name",
+      "Value":{"Ref":"AWS::StackName"},
+      "PropagateAtLaunch":"true"}],
+    "MaxSize":{"Ref":"GroupSize"},
+    "AvailabilityZones":{"Fn::GetAZs":""},
+    "LaunchConfigurationName":{"Ref":"LaunchConfig"}}},
+  "LaunchConfig":
+  {"Type":"AWS::AutoScaling::LaunchConfiguration",
+   "Properties":
+   {"ImageId":
+    {"Fn::FindInMap":
+     ["AWSRegionArch2AMI", {"Ref":"AWS::Region"},
+      {"Fn::FindInMap":
+       ["AWSInstanceType2Arch", {"Ref":"InstanceType"}, "Arch"]}]},
+    "UserData":
+    {"Fn::Base64":
+     {"Fn::Join":
+      ["\n",
+       ["exec > >(tee \/var\/log\/user-data.log|logger -t user-data -s 2>\/dev\/console) 2>&1",
+        {"Fn::Join":["=", ["export XMX", {"Ref":"Xmx"}]]},
+        {"Fn::Join":["=", ["export JAVA_OPTS", {"Ref":"JavaOpts"}]]},
+        {"Fn::Join":
+         ["=",
+          ["export DATOMIC_DEPLOY_BUCKET",
+           {"Ref":"DatomicDeployBucket"}]]},
+        {"Fn::Join":
+         ["=", ["export DATOMIC_VERSION", {"Ref":"DatomicVersion"}]]},
+        "cd \/datomic", "cat <<EOF >aws.properties",
+        "host=`curl http:\/\/169.254.169.254\/latest\/meta-data\/local-ipv4`",
+        "alt-host=`curl http:\/\/169.254.169.254\/latest\/meta-data\/public-ipv4`",
+        "aws-dynamodb-region=us-east-1\naws-transactor-role=datomic-aws-transactor\naws-peer-role=datomic-aws-peer\nprotocol=ddb\nmemory-index-max=256m\nport=4334\nmemory-index-threshold=32m\nobject-cache-max=128m\nlicense-key=CTZAPLCqbf9f\/JaHTR64enJxYC\/Bjn9mYKMjX0qQnTYnLE4mbI05AyL+FQbfQmx+\/AJDR9AYf0Fou7R8mC6s9jyzWTUHPrmi7YytCH8fqtVL\/UujXW9+gZ2Dc\/jkmEmL4mey8VHAr+VJB3UOhjUtGob55IcrV49yH2T1Ymn\/vKuybns8TwN8c0o\/cY3Vgi45QfaPjNajm32cp+YbF9LHMwhmZX5WPO+Kqo0HnPFqLAUpQzsWcLl5ly4pA8tBC2LMHR9K8EnG9CTBBRW4g+koUM4+NDlPlbAAa\/lEGkEO4REfkAk75nKdBia73QHqGmN+zLEn3oVWom0f9A\/cftZvIQ==13dfe337-7292-4827-acd0-ad0ff47550d2\naws-dynamodb-table=datemo",
+        "EOF", "chmod 744 aws.properties",
+        "AWS_ACCESS_KEY_ID=\"${DATOMIC_READ_DEPLOY_ACCESS_KEY_ID}\" AWS_SECRET_ACCESS_KEY=\"${DATOMIC_READ_DEPLOY_AWS_SECRET_KEY}\" aws s3 cp \"s3:\/\/${DATOMIC_DEPLOY_BUCKET}\/${DATOMIC_VERSION}\/startup.sh\" startup.sh",
+        "chmod 500 startup.sh", ".\/startup.sh"]]}},
+    "InstanceType":{"Ref":"InstanceType"},
+    "InstanceMonitoring":{"Ref":"InstanceMonitoring"},
+    "SecurityGroups":{"Ref":"SecurityGroups"},
+    "IamInstanceProfile":{"Ref":"InstanceProfile"},
+    "BlockDeviceMappings":
+    [{"DeviceName":"\/dev\/sdb", "VirtualName":"ephemeral0"}]}}},
+ "Mappings":
+ {"AWSInstanceType2Arch":
+  {"m3.large":{"Arch":"64h"},
+   "c3.large":{"Arch":"64h"},
+   "hs1.8xlarge":{"Arch":"64h"},
+   "i2.xlarge":{"Arch":"64h"},
+   "m1.small":{"Arch":"64p"},
+   "c3.8xlarge":{"Arch":"64h"},
+   "m1.xlarge":{"Arch":"64p"},
+   "cr1.8xlarge":{"Arch":"64h"},
+   "m3.2xlarge":{"Arch":"64h"},
+   "c3.2xlarge":{"Arch":"64h"},
+   "m2.2xlarge":{"Arch":"64p"},
+   "cc2.8xlarge":{"Arch":"64h"},
+   "hi1.4xlarge":{"Arch":"64p"},
+   "r3.4xlarge":{"Arch":"64h"},
+   "m1.large":{"Arch":"64p"},
+   "m2.4xlarge":{"Arch":"64p"},
+   "c3.4xlarge":{"Arch":"64h"},
+   "r3.large":{"Arch":"64h"},
+   "r3.xlarge":{"Arch":"64h"},
+   "m2.xlarge":{"Arch":"64p"},
+   "m3.xlarge":{"Arch":"64h"},
+   "i2.4xlarge":{"Arch":"64h"},
+   "r3.8xlarge":{"Arch":"64h"},
+   "c1.medium":{"Arch":"64p"},
+   "i2.8xlarge":{"Arch":"64h"},
+   "m3.medium":{"Arch":"64h"},
+   "r3.2xlarge":{"Arch":"64h"},
+   "m1.medium":{"Arch":"64p"},
+   "c1.xlarge":{"Arch":"64p"},
+   "t1.micro":{"Arch":"64p"},
+   "c3.xlarge":{"Arch":"64h"},
+   "i2.2xlarge":{"Arch":"64h"}},
+  "AWSRegionArch2AMI":
+  {"ap-northeast-1":{"64p":"ami-952c6a94", "64h":"ami-bf2f69be"},
+   "us-west-1":{"64p":"ami-3a9fa47f", "64h":"ami-789fa43d"},
+   "ap-southeast-1":{"64p":"ami-ecfaa8be", "64h":"ami-92faa8c0"},
+   "us-west-2":{"64p":"ami-1b13652b", "64h":"ami-f51264c5"},
+   "eu-central-1":{"64p":"ami-e0a4a9fd", "64h":"ami-e2a4a9ff"},
+   "us-east-1":{"64p":"ami-34ae4c5c", "64h":"ami-82a94bea"},
+   "eu-west-1":{"64p":"ami-6d67a11a", "64h":"ami-a566a0d2"},
+   "ap-southeast-2":{"64p":"ami-2d41da17", "64h":"ami-c942d9f3"},
+   "sa-east-1":{"64p":"ami-df238ec2", "64h":"ami-ad238eb0"}}},
+ "Parameters":
+ {"InstanceType":
+  {"Description":"Type of EC2 instance to launch",
+   "Type":"String",
+   "Default":"c3.large"},
+  "InstanceProfile":
+  {"Description":"Preexisting IAM role \/ instance profile",
+   "Type":"String",
+   "Default":"datomic-aws-transactor"},
+  "Xmx":
+  {"Description":"Xmx setting for the JVM",
+   "Type":"String",
+   "AllowedPattern":"\\d+[GgMm]",
+   "Default":"2625m"},
+  "GroupSize":
+  {"Description":"Size of machine group",
+   "Type":"String",
+   "Default":"1"},
+  "InstanceMonitoring":
+  {"Description":"Detailed monitoring for store instances?",
+   "Type":"String",
+   "Default":"true"},
+  "JavaOpts":
+  {"Description":"Options passed to Java launcher",
+   "Type":"String",
+   "Default":""},
+  "SecurityGroups":
+  {"Description":"Preexisting security groups.",
+   "Type":"CommaDelimitedList",
+   "Default":"datomic"},
+  "DatomicDeployBucket":
+  {"Type":"String",
+   "Default":"deploy-a0dbc565-faf2-4760-9b7e-29a8e45f428e"},
+  "DatomicVersion":{"Type":"String", "Default":"0.9.5544"}},
+ "Description":"Datomic Transactor Template"}
