@@ -14,7 +14,8 @@
 
 ;; Install arb schema in scratch db.
 (defn db-prep [f]
-  (d/delete-database (get-db-uri))
+  (if (not (= "" (get-db-uri)))
+    (d/delete-database (get-db-uri)))
   (init-db true)
   (-> (load-schema "schemas/arb.edn")
       (install-schema (get-conn)))
@@ -39,7 +40,7 @@
 
 (deftest test-get-root
   (testing "GET /"
-    (let [response (app (request :get "/"))]
+    (let [response (handler (request :get "/"))]
       (is (= (:status response) 200))
       (is (= (json/parse-string (:body response) true)
              {:_links {:documents {:href "/docs"}}})))))
@@ -51,7 +52,7 @@
           doc (doc-tx-spec id "A title" "note" :p "note1" ["tag1"])
           tx (d/transact (get-conn) doc)
           [_ _ tx-inst] (first (:tx-data @tx))
-          response (app (request :get url))]
+          response (handler (request :get url))]
       (is (= {:_links {:self {:href "/latest"}}
               :_embedded [{:_links {:self {:href (apply str "/documents/" (str id))}}
                            :id (str id)
@@ -65,7 +66,7 @@
 
   (testing "GET /latest (no query params)"
     (let [url "/latest"
-          response (app (request :get url))]
+          response (handler (request :get url))]
       (is (= 200
              (:status response))
           (= 1
@@ -73,7 +74,7 @@
 
   (testing "GET /latest?page=2 with one note in db"
     (let [url (str "/latest?page=2")
-          response (app (request :get url))]
+          response (handler (request :get url))]
       (is (= 404
              (:status response)))))
 
@@ -82,7 +83,7 @@
           ids (mapv (fn [x] (d/squuid)) (range 50))
           doc-specs (mapv #(first (doc-tx-spec % "A title" "note" :p "test" [])) ids)
           tx (d/transact (get-conn) doc-specs)
-          response (app (request :get url))]
+          response (handler (request :get url))]
       (is (= 200 (:status response)))
       (is (= 20 (->> (parse response) (:_embedded) (count))))))
 
@@ -91,13 +92,13 @@
           ids (mapv (fn [x] (d/squuid)) (range 5))
           doc-specs (mapv #(first (doc-tx-spec % "A title" "essay" :p "test" [])) ids)
           tx (d/transact (get-conn) doc-specs)
-          response (app (request :get url))]
+          response (handler (request :get url))]
       (is (= 5
              (->> (parse response) (:_embedded) (count))))))
 
   (testing "GET /latest perpage parameter"
     (let [url "/latest?perpage=3"
-          response (app (request :get url))]
+          response (handler (request :get url))]
       (is (= 3 (->> (parse response) (:_embedded) (count)))))))
 
 (deftest test-get-document-by-id
@@ -111,7 +112,7 @@
                                   :metadata/title "A title"}}])
     (let [tx (d/transact (get-conn) tx-spec)
           [_ _ tx-inst] (first (:tx-data @tx))
-          response (app (request :get (str "/documents/" id)))]
+          response (handler (request :get (str "/documents/" id)))]
       (is (= 200 (:status response)))
       (is (= {:_links {:self {:href (str "/documents/" id) } }
               :_embedded {:id (str id)
@@ -133,7 +134,7 @@
                   :tags ["tag2"]}
             tx-result (d/transact (get-conn) tx-spec)
             [_ _ tx-inst] (first (:tx-data @tx-result))
-            response (app (prep-request :put (str "/documents/" id) data))
+            response (handler (prep-request :put (str "/documents/" id) data))
             body (parse response)]
         (is (= 202 (:status response)))
         (is (= (str "/documents/" id) (get-in body [:_links :self ])))
@@ -155,7 +156,7 @@
                     (array-map :doc-string)
                     (into {:doctype "note"})
                     (into {:tags ["tag1" "tag2"]}))
-          response (app (prep-request :post "/documents" data))
+          response (handler (prep-request :post "/documents" data))
           body (parse response)
           status (:status response)
           headers (:headers response)]
@@ -172,10 +173,11 @@
       (is (= false (nil? (get-in body [:_embedded :created-at]))))
       (is (= false (nil? (get-in body [:_embedded :updated-at]))))
       (is (= "<div><h1>Title</h1><p>Paragraph</p></div>"
-             (get-in body [:_embedded :html]))))))
+             (get-in body [:_embedded :html])))
+      )))
 
 (deftest test-not-found-route
   (testing "not-found route"
-    (let [response (app (request :get "/bogus/route"))]
+    (let [response (handler (request :get "/bogus/route"))]
       (is (= (:status response) 404))
       (is (= (:body response) "Not found")))))

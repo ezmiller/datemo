@@ -6,7 +6,6 @@
 (require '[clojure.pprint :refer [pprint]])
 
 (defn setup-db [f]
-  (d/delete-database (get-db-uri))
   (init-db true)
   (-> (load-schema "schemas/arb.edn")
       (install-schema (get-conn)))

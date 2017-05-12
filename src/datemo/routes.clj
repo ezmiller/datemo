@@ -245,7 +245,7 @@
     (prn (str "Request: " (:request-method request) " " (:uri request)))
     (handler request)))
 
-(def app
+(def handler
   (-> app-routes
       (wrap-json-response)
       ;; (wrap-with-debugger)

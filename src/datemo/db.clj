@@ -58,10 +58,6 @@
                           (connect (env :database-uri)))]
       (swap! db-atom assoc :conn conn :db-uri db-uri))))
 
-(if (= "true" (env :testing))
-  (init-db true)
-  (init-db))
-
 ;; Helper functions
 
 (defn get-conn []

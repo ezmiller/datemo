@@ -20,13 +20,17 @@
                  [markdown-clj "0.9.94"]]
   :plugins [[lein-ring "0.11.0"]
             [lein-environ "1.1.0"]
+            [lein-pprint "1.1.2"]
             [com.jakemccrary/lein-test-refresh "0.18.1"]]
-  :ring {:handler datemo.routes/app
+  :ring {:init datemo.init/init
+         :handler datemo.routes/handler
          :nrepl {:start? true
                  :port 9998}}
   :test-paths ["test"]
   :profiles
-  {:dev {:env {:database-uri "datomic:dev://localhost:4334/datemo"}
+  {:production {:dependencies [[javax.serverlet/servlet-api "2.5"]
+                               [ring/ring-mock "0.3.0"]]}
+   :dev {:env {:database-uri "datomic:dev://localhost:4334/datemo"}
          :dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.0"]]}
    :test {:env {:testing "true"}
