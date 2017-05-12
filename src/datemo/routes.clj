@@ -46,7 +46,7 @@
 
 (defn gen-tags-meta [tags]
   (if (empty? tags)
-    {:metadata/tags :metadata/empty}
+    {:metadata/tags [:metadata/empty]}
     {:metadata/tags (mapv #(array-map :metadata/tag (keyword (s/trim %))) tags)}))
 
 (defn get-updated-at
