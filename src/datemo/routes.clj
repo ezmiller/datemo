@@ -6,6 +6,7 @@
         datemo.db)
   (:require [clojure.edn :as edn]
             [clojure.string :as s]
+            [clj-time.coerce :as c]
             [compojure.route :as route]
             [ring.middleware.json :refer :all]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
@@ -48,26 +49,30 @@
     {:metadata/tags :metadata/empty}
     {:metadata/tags (mapv #(array-map :metadata/tag (keyword (s/trim %))) tags)}))
 
-(defn get-updated-at [arb-id]
-  (let [eid (db/get-eid [:arb/id arb-id])
-        [result error] (q-hist-or-error '[:find (max ?t)
-                                          :in $ ?e
-                                          :where
-                                          [?e _ _ ?tx]
-                                          [?tx :db/txInstant ?t]] eid)]
+(defn get-updated-at
+  ([arb-id] (get-updated-at arb-id (db-now)))
+  ([arb-id db]
+   (let [eid (db/get-eid [:arb/id arb-id])
+         [result error] (q-or-error '[:find (max ?t)
+                                      :in $ ?e
+                                      :where
+                                      [?e _ _ ?tx]
+                                      [?tx :db/txInstant ?t]] (d/history db) eid)]
     (if (has-error error)
       nil
-      (->> result (first) (first)))))
+      (->> result (first) (first) (c/to-string))))))
 
-(defn get-created-at [arb-id]
-  (let [[result error] (q-or-error '[:find ?t
-                                     :in $ ?id
-                                     :where
-                                     [?e :arb/id ?id ?tx]
-                                     [?tx :db/txInstant ?t]] arb-id)]
-    (if (has-error error)
-      nil
-      (->> result (first) (first)))))
+(defn get-created-at
+  ([arb-id] (get-created-at arb-id (db-now)))
+  ([arb-id db]
+    (let [[result error] (q-or-error '[:find ?t
+                                       :in $ ?id
+                                       :where
+                                       [?e :arb/id ?id ?tx]
+                                       [?tx :db/txInstant ?t]] (d/history db) arb-id)]
+      (if (has-error error)
+        nil
+        (->> result (first) (first) (c/to-string))))))
 
 ;; Note: You get an error if the {:readers *data-reader*} bit is not added.
 ;; This seems to relate to the need for data-readers to understand certain
@@ -190,8 +195,12 @@
                 :_embedded {:id uuid-str
                             :title (get-title (:arb/metadata doc))
                             :doctype (get-doctype (:arb/metadata doc))
-                            :created-at (get-created-at (str->uuid uuid-str))
-                            :updated-at (get-updated-at (str->uuid uuid-str))
+                            :created-at (get-created-at
+                                          (str->uuid uuid-str)
+                                          db-after)
+                            :updated-at (get-updated-at
+                                          (str->uuid uuid-str)
+                                          db-after)
                             :tags (get-tags (:arb/metadata doc db-after))
                             :html doc-html}}}))))
 
@@ -214,8 +223,8 @@
                :_embedded {:id id
                            :title (get-title (:arb/metadata new-doc))
                            :doctype (get-doctype (:arb/metadata new-doc))
-                           :created-at (get-created-at id)
-                           :updated-at (get-updated-at id)
+                           :created-at (get-created-at id db-after)
+                           :updated-at (get-updated-at id db-after)
                            :tags (get-tags (:arb/metadata new-doc))
                            :html html}}})
      {:status 500

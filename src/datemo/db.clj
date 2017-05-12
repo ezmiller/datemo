@@ -117,13 +117,10 @@
 
 ;; Querys
 
-(defn q-or-error [query & inputs]
-  (try [(apply d/q query (db-now) inputs) nil]
+(defn q-or-error
+  ([query](q-or-error query (db-now)))
+  ([query & inputs]
+  (try [(apply d/q query inputs) nil]
        (catch Exception e
-         [nil (.getMessage e)])))
-
-(defn q-hist-or-error [query & inputs]
-  (try [(apply d/q query (d/history (db-now)) inputs) nil]
-       (catch Exception e
-         [nil (.getMessage e)])))
+         [nil (.getMessage e)]))))
 

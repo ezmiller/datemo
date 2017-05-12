@@ -4,7 +4,8 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :exclusions [[commons-codec]]
-  :dependencies [[commons-codec "1.6"]
+  :dependencies [[clj-time "0.13.0"]
+                 [commons-codec "1.6"]
                  [org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.2.395"]
                  [com.datomic/datomic-pro "0.9.5544"]
