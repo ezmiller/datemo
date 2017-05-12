@@ -7,7 +7,8 @@
  {:db/ident            :metadata/empty}
  {:db/ident            :metadata/tags
   :db/valueType        :db.type/ref
-  :db/cardinality      :db.cardinality/many}
+  :db/cardinality      :db.cardinality/many
+  :db/isComponent      true}
  {:db/ident            :metadata/tag
   :db/valueType        :db.type/keyword
   :db/cardinality      :db.cardinality/one
