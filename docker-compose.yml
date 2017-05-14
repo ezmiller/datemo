@@ -19,7 +19,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATEMO_DB_URI=datomic:ddb://datemo/datemo
+      - DATEMO_DB_URI=datomic:ddb://us-east-1/datemo/datemo
       - VIRTUAL_HOST=138.197.7.39
     secrets:
       - aws_access_key
