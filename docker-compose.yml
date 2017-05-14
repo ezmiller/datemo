@@ -15,7 +15,7 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock:ro
 
   datemo:
-    image: ezmiller/datemo:0.1.2
+    image: ezmiller/datemo:latest
     ports:
       - "8080:8080"
     environment:
