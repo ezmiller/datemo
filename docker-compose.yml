@@ -6,22 +6,19 @@ secrets:
   aws_secret_access_key:
     external: true
 
-services:
-  # web:
-  #   image: nginx
-  #   volumes:
-  #    - ./server.template:/etc/nginx/conf.d/server.template
-  #   ports:
-  #    - "80:80"
-  #   environment:
-  #    - NGINX_PORT=80
-  #    - BACKEND_PORT=8080
-  #   command: /bin/bash -c "envsubst < /etc/nginx/conf.d/server.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
-  #
+  web:
+    image: jwilder/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
   datemo:
     image: ezmiller/datemo:0.1.2
     ports:
-      - "80:80"
+      - "8080:8080"
+    environment:
+      - VIRTUAL_HOST=138.197.7.39
     secrets:
       - aws_access_key
       - aws_secret_access_key
