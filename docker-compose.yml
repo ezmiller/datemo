@@ -8,14 +8,14 @@ secrets:
 
 services:
   web:
-    image: jwilder/nginx-proxy
+    image: ezmiller/datemo-nginx-proxy:latest
     ports:
       - "80:80"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
 
   datemo:
     image: ezmiller/datemo:latest
+    depends_on:
+      - web
     ports:
       - "8080:8080"
     environment:
