@@ -6,6 +6,7 @@
         datemo.db)
   (:require [clojure.edn :as edn]
             [clojure.string :as s]
+            [clj-time.core :as t]
             [clj-time.coerce :as c]
             [compojure.route :as route]
             [ring.middleware.json :refer :all]
@@ -263,7 +264,9 @@
       (wrap-json-response)
       ;; (wrap-with-debugger)
       (wrap-json-body {:keywords? true})
-      (wrap-cors :access-control-allow-origin [#"http://localhost:8080"]
+      (wrap-cors :access-control-allow-origin [#"http://localhost:8080"
+                                               #"http://localhost:4000"
+                                               #"http://humanscode.com"]
                  :access-control-allow-methods [:get :put :post :delete])
       (wrap-defaults api-defaults)))
 
