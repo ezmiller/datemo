@@ -99,7 +99,27 @@
   (testing "GET /latest perpage parameter"
     (let [url "/latest?perpage=3"
           response (handler (request :get url))]
-      (is (= 3 (->> (parse response) (:_embedded) (count)))))))
+      (is (= 3 (->> (parse response) (:_embedded) (count))))))
+  )
+
+(deftest test-get-latest-with-tags
+  (testing "GET /latest tag filter parameter"
+    (let [doc-specs
+            [
+             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" ["tag1"]))
+             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" ["tag2"]))
+             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" ["tag1" "tag2"]))
+             ]
+          tx (d/transact (get-conn) doc-specs)
+          response1 (handler (request :get "/latest?tags=tag1"))
+          response2 (handler (request :get "/latest?tags=tag2"))
+          response3 (handler (request :get "/latest?tags=tag1&tags=tag2"))
+          response4 (handler (request :get "/latest?tags=tag4"))]
+      (is (= 2 (-> (parse response1) (:_embedded) (count))))
+      (is (= 2 (-> (parse response2) (:_embedded) (count))))
+      (is (= 3 (-> (parse response3) (:_embedded) (count))))
+      (is (= 0 (-> (parse response4) (:_embedded) (count)))))))
+
 
 (deftest test-get-document-by-id
   (testing "GET /documents/:id"
