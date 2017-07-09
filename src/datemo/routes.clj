@@ -115,26 +115,39 @@
                    :updated-at (get-updated-at (:arb/id %))
                    :html (tx->html %)) coll))
 
-;; Better would be to do this using a paramterized query.
-;; E.g. [:find (pull ?e [*]) :in [$ ?doctype] :where [?e :arb/doctype ?doctype]]
-(defn latest-query
-  ([]
-   '[:find (pull ?doc [*])
-        :where [?meta :metadata/doctype]
-               [?doc :arb/metadata ?meta]])
-  ([doctype]
-   (let [doctype-val (keyword "doctype" doctype)]
-    [:find '(pull ?doc [*])
-      :where ['?meta ':metadata/doctype doctype-val]
-             ['?doc ':arb/metadata '?meta]])))
+(defn latest-query [filter-doctype]
+  (cond
+    (true? filter-doctype)
+      '[:find (pull ?doc [*])
+        :in $ ?doctype
+        :where [?doc :arb/metadata ?meta]
+               [?meta :metadata/doctype ?doctype]]
+    :else
+      '[:find (pull ?doc [*])
+        :where [?doc :arb/metadata ?meta]
+               [?meta :metadata/doctype]]))
+
+(defn filter-by-tags [res tags]
+  (filterv
+    (fn [r]
+      (let [metadata (-> (first r) (:arb/metadata) (first))
+            tagset (mapv #(:metadata/tag %) (:metadata/tags metadata))
+            tags-to-find (mapv #(keyword %) (if (vector? tags) tags [tags]))
+            matched (filterv #(>= (.indexOf tagset %) 0) tags-to-find)]
+        (> (count matched) 0)))
+    res))
 
 (defn latest [req]
   (let [page (->> (or (get-in req [:params :page]) "1") (parse-int))
         perpage (->> (or (get-in req [:params :perpage]) "20") (parse-int))
         offset (* perpage (dec page))
         doctype (get-in req [:params :doctype])
-        query (if (nil? doctype) (latest-query) (latest-query doctype))
-        [docs error] (q-or-error query)]
+        tags (get-in req [:params :tags])
+        query (latest-query (not (nil? doctype)))
+        [res error] (if (nil? doctype)
+                    (q-or-error query (db-now))
+                    (q-or-error query (db-now) (keyword "doctype" doctype)))]
+    (def docs (if (nil? tags) res (filter-by-tags res tags)))
     (cond
       (not (nil? error)) {:status 500}
       (>= offset (count docs)) {:status 404}
