@@ -9,7 +9,7 @@ necessary to persist the data, do this:
 bin/run -m datomic.peer-server -p 8998 -a datemo,datemo -d datemo,datomic:mem://datemo
 ```
 
-In order to get the db running, you need to run the following commands from the root of the datomic download package:
+In order to get the dev db running, you need to run the following commands from the root of the datomic download package:
 
 1) Run transactor:
 
