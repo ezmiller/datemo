@@ -62,6 +62,17 @@
            {:arb/metadata [{:metadata/html-tag :div}]
             :arb/value [{:content/text "Text"}]}
            (arb->tx [:arb {:original-tag :div} "Text"]))))
+    (testing "arb with emphasis markup"
+      (is (=
+           {:arb/metadata [{:metadata/html-tag :div}],
+            :arb/value
+            ["This is "
+             {:arb/metadata [{:metadata/html-tag :em}],
+              :arb/value [{:content/text "italic"}]}
+             "text"]}
+           (arb->tx [:arb
+                     {:original-tag :div}
+                     "This is " [:arb {:original-tag :em} "italic"] "text"]))))
     (testing "arb with nested arb"
       (is (=
            {:arb/metadata [{:metadata/html-tag :div}]
