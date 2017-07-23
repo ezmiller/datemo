@@ -36,15 +36,19 @@
 
 (defn arb->tx [arb]
   (let [[arb-tag metadata & value] arb]
-    (if (or (string? (first value)) (nil? (first value)))
+    (if (and
+          (= 1 (count value))
+          (or (string? (first value)) (nil? (first value))))
       {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
        :arb/value [{:content/text (first value)}]}
       (loop [values []
              items value]
+        (def new-val (if (string? (first items))
+                       (first items) (arb->tx (first items))))
         (if (= 1 (count items))
           {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
-           :arb/value (conj values (arb->tx (first items)))}
-          (recur (conj values (arb->tx (first items))) (next items)))))))
+           :arb/value (conj values new-val)}
+          (recur (conj values new-val) (next items)))))))
 
 (defn html->tx [html & metadata]
   (let [tx (-> html (html->arb) (arb->tx))]
