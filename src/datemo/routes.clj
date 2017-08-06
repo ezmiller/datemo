@@ -219,30 +219,30 @@
                             :html doc-html}}}))))
 
 (defn post-doc [doc-string doctype title tags]
- (let [id (d/squuid)
-       tx (-> (html->tx
-                (md-to-html-string doc-string)
-                {:metadata/title (or title "Untitled")}
-                {:metadata/doctype (keyword "doctype" doctype)}
-                (gen-tags-meta tags))
-              (into {:arb/id id}) (edn->clj))
-       [tx-result tx-error] (db/transact-or-error [tx])]
-   (if (nil? tx-error)
-     (let [db-after (:db-after tx-result)
-           new-doc (d/pull db-after '[*] [:arb/id id])
-           html (-> new-doc (tx->arb) (arb->hiccup) (html))]
-       {:status 201
-        :headers {"Content-Type" "application/hal+json; charset=utf-8"}
-        :body {:_links {:self {:href (apply str "/documents/" (str id))}}
-               :_embedded {:id id
-                           :title (get-title (:arb/metadata new-doc))
-                           :doctype (get-doctype (:arb/metadata new-doc))
-                           :created-at (get-created-at id db-after)
-                           :updated-at (get-updated-at id db-after)
-                           :tags (get-tags (:arb/metadata new-doc))
-                           :html html}}})
-     {:status 500
-      :body {:error (apply str "Error posting: " tx-error)}})))
+  (let [id (d/squuid)
+        tx (-> (html->tx
+                 (md-to-html-string doc-string)
+                 {:metadata/title (or title "Untitled")}
+                 {:metadata/doctype (keyword "doctype" doctype)}
+                 (gen-tags-meta tags))
+               (into {:arb/id id}) (edn->clj))
+        [tx-result tx-error] (db/transact-or-error [tx])]
+    (if (nil? tx-error)
+      (let [db-after (:db-after tx-result)
+            new-doc (d/pull db-after '[*] [:arb/id id])
+            html (-> new-doc (tx->arb) (arb->hiccup) (html))]
+        {:status 201
+         :headers {"Content-Type" "application/hal+json; charset=utf-8"}
+         :body {:_links {:self {:href (apply str "/documents/" (str id))}}
+                :_embedded {:id id
+                            :title (get-title (:arb/metadata new-doc))
+                            :doctype (get-doctype (:arb/metadata new-doc))
+                            :created-at (get-created-at id db-after)
+                            :updated-at (get-updated-at id db-after)
+                            :tags (get-tags (:arb/metadata new-doc))
+                            :html html}}})
+      {:status 500
+       :body {:error (apply str "Error posting: " tx-error)}})))
 
 (defroutes app-routes
   (GET "/" [] {:body {:_links {:documents {:href "/docs"}}}})
