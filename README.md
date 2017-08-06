@@ -30,6 +30,6 @@ rlwrap bin/repl
 To run the server do:
 
 ```
-lein ring server
+lein ring server <desired-port-#>
 ```
 
