@@ -65,11 +65,10 @@
     (testing "arb with emphasis markup"
       (is (=
            {:arb/metadata [{:metadata/html-tag :div}],
-            :arb/value
-            ["This is "
-             {:arb/metadata [{:metadata/html-tag :em}],
-              :arb/value [{:content/text "italic"}]}
-             "text"]}
+            :arb/value [{:content/text "This is "}
+                        {:arb/metadata [{:metadata/html-tag :em}],
+                         :arb/value [{:content/text "italic"}]}
+                        {:content/text "text"}]}
            (arb->tx [:arb
                      {:original-tag :div}
                      "This is " [:arb {:original-tag :em} "italic"] "text"]))))
@@ -100,7 +99,7 @@
              {:arb/metadata [{:metadata/html-tag :div}]
               :arb/value [{:arb/metadata [{:metadata/html-tag :p}]
                            :arb/value [{:content/text "paragraph"}]}]}))))
-    (testing "with single-level nested arb with siblings"
+    (testing "with single-level nested arb with multiple arb siblings"
       (is (=
            [:arb
             {:original-tag :div}
@@ -111,7 +110,20 @@
               :arb/value [{:arb/metadata [{:metadata/html-tag :h1}]
                            :arb/value [{:content/text "title"}]}
                           {:arb/metadata [{:metadata/html-tag :p}]
-                           :arb/value [{:content/text "paragraph"}]}]})))))
+                           :arb/value [{:content/text "paragraph"}]}]}))))
+    (testing "with single-level nested arb with arb and :content/text siblings"
+      (is (=
+           [:arb
+            {:original-tag :div}
+            "Text with "
+            [:arb {:original-tag :em} "emphasis"]
+            " in between."]
+           (tx->arb
+             {:arb/metadata [{:metadata/html-tag :div}]
+              :arb/value [{:content/text "Text with "}
+                          {:arb/metadata [{:metadata/html-tag :em}]
+                           :arb/value [{:content/text "emphasis"}]}
+                          {:content/text " in between."}]})))))
 
   (testing "arb->hiccup"
     (testing "single node"

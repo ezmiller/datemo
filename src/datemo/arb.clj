@@ -3,6 +3,11 @@
   (:use hickory.core
         hiccup.core))
 
+(defn is-arb [coll]
+  (and
+    (instance? clojure.lang.PersistentArrayMap coll)
+    (contains? coll :arb/value)))
+
 (defn get-in-metadata [k metadata]
   (k (first (filter #(k %) metadata))))
 
@@ -44,7 +49,8 @@
       (loop [values []
              items value]
         (def new-val (if (string? (first items))
-                       (first items) (arb->tx (first items))))
+                       {:content/text (first items)}
+                       (arb->tx (first items))))
         (if (= 1 (count items))
           {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
            :arb/value (conj values new-val)}
@@ -65,7 +71,10 @@
           (into
             [:arb {:original-tag (:metadata/html-tag (first metadata))}]
             arbs)
-          (recur (conj arbs (tx->arb (first items))) (next items)))))))
+          (recur
+            (conj arbs (if-not (is-arb (first items))
+                         (:content/text (first items)) ;; If it's not an arb it must be a :content/text
+                         (tx->arb (first items)))) (next items)))))))
 
 (defn arb->hiccup [arb]
   (let [[arb-tag metadata & value] arb]
