@@ -92,7 +92,7 @@
  {"InstanceType":
   {"Description":"Type of EC2 instance to launch",
    "Type":"String",
-   "Default":"c3.large"},
+   "Default":"m3.medium"},
   "InstanceProfile":
   {"Description":"Preexisting IAM role \/ instance profile",
    "Type":"String",
