@@ -1,6 +1,6 @@
-(defproject datemo "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+(defproject datemo "0.1.1"
+  :description "Document server backed by datomic"
+  :url "https://github.com/ezmiller/datemo"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :exclusions [[commons-codec]]
