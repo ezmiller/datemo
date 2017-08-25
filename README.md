@@ -61,7 +61,7 @@ docker stack rm datemo
 AWS instance where the transactor is running, i.e. the instance that is started when deploying
 the cloud formation in step #2.
 
-### Deploying via a transactor to AWS
+### Deploying a transactor to AWS
 
 Here's a [video](https://www.youtube.com/watch?v=wG5grJP3jKY) that covers the basic process, and here's a [link](http://docs.datomic.com/aws.html) that does the same. None of this documentation is particularly up to date, but it gives the basic idea.
 
@@ -95,5 +95,20 @@ To deploy the cloud formation, you can do the following:
     ```
     bin/datomic delete-cf-stack us-east-1 DatomicTransactor
     ```
+
+## Rebuilding Docker Image for new version
+
+1. Make sure you've updated the version in `project.clj`.
+2. Update the .jar file specified in the `Dockerfile`.
+3. Build the new docker image:
+    ```
+    docker build --rm -t ezmiller/datemo:latest -t ezmiller/datemo:<version> .
+    ```
+4. Push both latest and the new version to the Docker Hub:
+    ```
+    docker push ezmiller/datemo:latest
+    docker push ezmiller/datemo:<version>
+    ```
+5. Now you can do `docker pull` of latest on server and redeploy stack.
 
 
