@@ -33,3 +33,67 @@ To run the server do:
 lein ring server <desired-port-#>
 ```
 
+## Notes on Deployment
+
+Currently, I'm running this instance using Docker and AWS. So the deployment has two steps:
+1. Deploy the datemo server (its clojure jar file) and run in connection with a web server
+using Docker.
+2. Deploy a transactor to AWS using the Datomic tools for deploying via Cloud Formation.
+
+### Deploying the Datemo Server
+
+The Datemo server is currently deployed using the a Docker stack. See the `docker-compose.yml` file
+in the project root for the configuration. 
+
+To start the stack do:
+
+```
+docker stack up -c docker-compose.yml datemo
+```
+
+To stop it:
+
+```
+docker stack rm datemo
+```
+
+**Note:** The `VIRTUAL_HOST` settingin `docker-compose.yml` needs to point to the IP of the
+AWS instance where the transactor is running, i.e. the instance that is started when deploying
+the cloud formation in step #2.
+
+### Deploying via a transactor to AWS
+
+Here's a [video](https://www.youtube.com/watch?v=wG5grJP3jKY) that covers the basic process, and here's a [link](http://docs.datomic.com/aws.html) that does the same. None of this documentation is particularly up to date, but it gives the basic idea.
+
+Here is another overview of the steps needed:
+
+1. Create a cloud formation template `.properties` file. Copy the basic template from the
+datomic `/config/samples` folder. Set your instance type (e.g. `c3.large` or `m3.medium`).
+A list of possible instances can be found by looking at the JSON template file that is generated
+at the end of this process.
+
+2. Create an "ensured" cloud formation propreties file by running `bin/datomic ensure-cf`. This
+looks like this:
+    ```
+    bin/datomic ensure-cf /path/to/your-cf.properties /target/path/to/your-cf-ensured.properties
+    ```
+
+3. Create the cloud formation JSON template:
+    ```
+    bin/datomic create-cf-template /path/to/dynamodb-transactor.properties /path/to/ensured-cf.properties /output/path/to/cf.json
+    ```
+
+4. Once these steps have been concluded, you should have a workable cloud formation template file.
+To deploy the cloud formation, you can do the following:
+
+    ```
+    bin/datomic create-cf-stack us-east-1 DatomicTransactor /path/to/cf.json
+    ```
+
+5. If you need to delete the stack, do:
+
+    ```
+    bin/datomic delete-cf-stack us-east-1 DatomicTransactor
+    ```
+
+
