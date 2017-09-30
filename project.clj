@@ -1,4 +1,4 @@
-(defproject datemo "0.1.1"
+(defproject datemo "0.1.2"
   :description "Document server backed by datomic"
   :url "https://github.com/ezmiller/datemo"
   :license {:name "Eclipse Public License"
