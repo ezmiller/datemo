@@ -33,6 +33,20 @@ To run the server do:
 lein ring server <desired-port-#>
 ```
 
+## To run Datemo to test Production
+
+Assuming the transactor is already running on AWS:
+
+1) Build the jar files with:
+```
+lein ring uberjar
+```
+
+2) Run the following command, adding the AWS keys:
+```
+java -Ddatabase.uri="datomic:ddb://us-east-1/datemo/datemo?aws_access_key_id=<fill-in-key>&aws_secret_key=<fill-in-key>" -jar target/datemo-<version#>-standalone.jar
+```
+
 ## Notes on Deployment
 
 Currently, I'm running this instance using Docker and AWS. So the deployment has two steps:
@@ -111,16 +125,17 @@ To deploy the cloud formation, you can do the following:
 ## Rebuilding Docker Image for new version
 
 1. Make sure you've updated the version in `project.clj`.
-2. Update the .jar file specified in the `Dockerfile`.
-3. Build the new docker image:
+2. Build the new jar files by doing: `lein ring uberjar`.
+3. Update the .jar file specified in the `Dockerfile`.
+4. Build the new docker image:
     ```
     docker build --rm -t ezmiller/datemo:latest -t ezmiller/datemo:<version> .
     ```
-4. Push both latest and the new version to the Docker Hub:
+5. Push both latest and the new version to the Docker Hub:
     ```
     docker push ezmiller/datemo:latest
     docker push ezmiller/datemo:<version>
     ```
-5. Now you can do `docker pull` of latest on server and redeploy stack.
+6. Now you can do `docker pull` of latest on server and redeploy stack.
 
 
