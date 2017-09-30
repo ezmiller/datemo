@@ -33,6 +33,36 @@ To run the server do:
 lein ring server <desired-port-#>
 ```
 
+Note: You can also run in dev and connect to a transactor on AWS by replacing the database URI
+for dev in the project.clj. This is also useful for updating the schema on an AWS deployed DB:
+
+1) Change the database URI in project.clj
+2) Run the repl with `lein repl`
+3) Do the following in the repl:
+```
+(use 'datemo.db)
+(require '[datomic.api :as d])
+(d/delete-database "<database-uri>")
+(d/create-database "<database-uri>")
+(init-db)
+(-> (load-schema "schemas/arb.edn")
+    (install-schema (get-conn)))
+```
+
+## To run Datemo to test Production
+
+Assuming the transactor is already running on AWS:
+
+1) Build the jar files with:
+```
+lein ring uberjar
+```
+
+2) Run the following command, adding the AWS keys:
+```
+java -Ddatabase.uri="datomic:ddb://us-east-1/datemo/datemo?aws_access_key_id=<fill-in-key>&aws_secret_key=<fill-in-key>" -jar target/datemo-<version#>-standalone.jar
+```
+
 ## Notes on Deployment
 
 Currently, I'm running this instance using Docker and AWS. So the deployment has two steps:
@@ -57,7 +87,19 @@ To stop it:
 docker stack rm datemo
 ```
 
-**Note:** The `VIRTUAL_HOST` settingin `docker-compose.yml` needs to point to the IP of the
+To see what is running in the stack do:
+
+```
+docker ps
+```
+
+To inspect the logs for one of the processes do:
+
+```
+docker logs <process-name, e.g. "datemo_web.1.myrooeb6ifz71p00bebftgof6">
+```
+
+**Note:** The `VIRTUAL_HOST` setting in `docker-compose.yml` needs to point to the IP of the
 AWS instance where the transactor is running, i.e. the instance that is started when deploying
 the cloud formation in step #2.
 
@@ -99,16 +141,17 @@ To deploy the cloud formation, you can do the following:
 ## Rebuilding Docker Image for new version
 
 1. Make sure you've updated the version in `project.clj`.
-2. Update the .jar file specified in the `Dockerfile`.
-3. Build the new docker image:
+2. Build the new jar files by doing: `lein ring uberjar`.
+3. Update the .jar file specified in the `Dockerfile`.
+4. Build the new docker image:
     ```
     docker build --rm -t ezmiller/datemo:latest -t ezmiller/datemo:<version> .
     ```
-4. Push both latest and the new version to the Docker Hub:
+5. Push both latest and the new version to the Docker Hub:
     ```
     docker push ezmiller/datemo:latest
     docker push ezmiller/datemo:<version>
     ```
-5. Now you can do `docker pull` of latest on server and redeploy stack.
+6. Now you can do `docker pull` of latest on server and redeploy stack.
 
 

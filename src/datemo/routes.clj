@@ -27,7 +27,7 @@
   (java.util.UUID/fromString uuid-str))
 
 (defn is-empty-metadata [entity]
-  (= :metadata/empty (:db/ident (pull-entity (:db/id entity)))))
+  (= :empty (:db/ident (pull-entity (:db/id entity)))))
 
 (defn get-title [metadata]
   (get-in-metadata :metadata/title metadata))
@@ -43,12 +43,12 @@
   (def tags (get-in-metadata :metadata/tags metadata))
   (if (or (nil? tags) (is-empty-metadata (first tags)))
     []
-    (mapv #(name (:metadata/tag %)) tags)))
+    (mapv #(name (:tag/name %)) tags)))
 
 (defn gen-tags-meta [tags]
   (if (empty? tags)
-    {:metadata/tags [:metadata/empty]}
-    {:metadata/tags (mapv #(array-map :metadata/tag (keyword (s/trim %))) tags)}))
+    {:metadata/tags [:empty]}
+    {:metadata/tags (mapv #(array-map :tag/name (keyword (s/trim %))) tags)}))
 
 (defn get-updated-at
   ([arb-id] (get-updated-at arb-id (db-now)))
@@ -132,7 +132,7 @@
   (filterv
     (fn [r]
       (let [metadata (-> (first r) (:arb/metadata) (first))
-            tagset (mapv #(:metadata/tag %) (:metadata/tags metadata))
+            tagset (mapv #(:tag/name %) (:metadata/tags metadata))
             tags-to-find (mapv #(keyword %) (if (vector? tags) tags [tags]))
             matched (filterv #(>= (.indexOf tagset %) 0) tags-to-find)]
         (> (count matched) 0)))

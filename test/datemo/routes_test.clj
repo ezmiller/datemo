@@ -35,7 +35,7 @@
     :arb/value {:content/text value}
     :arb/metadata {:metadata/html-tag tag
                    :metadata/title title
-                   :metadata/tags (mapv #(array-map :metadata/tag (keyword %)) tags)
+                   :metadata/tags (mapv #(array-map :tag/name (keyword %)) tags)
                    :metadata/doctype (keyword "doctype" doctype)}}])
 
 (deftest test-get-root
@@ -128,7 +128,7 @@
                    :arb/value {:content/text "test"}
                    :arb/metadata {:metadata/html-tag :p
                                   :metadata/doctype :doctype/note
-                                  :metadata/tags [{:metadata/tag :tag1}]
+                                  :metadata/tags [{:tag/name :tag1}]
                                   :metadata/title "A title"}}])
     (let [tx (d/transact (get-conn) tx-spec)
           [_ _ tx-inst] (first (:tx-data @tx))
