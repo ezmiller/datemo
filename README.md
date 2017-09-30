@@ -33,6 +33,22 @@ To run the server do:
 lein ring server <desired-port-#>
 ```
 
+Note: You can also run in dev and connect to a transactor on AWS by replacing the database URI
+for dev in the project.clj. This is also useful for updating the schema on an AWS deployed DB:
+
+1) Change the database URI in project.clj
+2) Run the repl with `lein repl`
+3) Do the following in the repl:
+```
+(use 'datemo.db)
+(require '[datomic.api :as d])
+(d/delete-database "<database-uri>")
+(d/create-database "<database-uri>")
+(init-db)
+(-> (load-schema "schemas/arb.edn")
+    (install-schema (get-conn)))
+```
+
 ## To run Datemo to test Production
 
 Assuming the transactor is already running on AWS:
