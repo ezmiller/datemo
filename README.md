@@ -57,7 +57,19 @@ To stop it:
 docker stack rm datemo
 ```
 
-**Note:** The `VIRTUAL_HOST` settingin `docker-compose.yml` needs to point to the IP of the
+To see what is running in the stack do:
+
+```
+docker ps
+```
+
+To inspect the logs for one of the processes do:
+
+```
+docker logs <process-name, e.g. "datemo_web.1.myrooeb6ifz71p00bebftgof6">
+```
+
+**Note:** The `VIRTUAL_HOST` setting in `docker-compose.yml` needs to point to the IP of the
 AWS instance where the transactor is running, i.e. the instance that is started when deploying
 the cloud formation in step #2.
 
