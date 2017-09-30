@@ -8,4 +8,4 @@ echo "Done"
 database_uri="$DATEMO_DB_URI?aws_access_key_id=$aws_access_key&aws_secret_key=$aws_secret_access_key"
 
 echo "Starting datemo..."
-java -DDATABASE.URI=$database_uri -jar /datemo-0.1.1-standalone.jar
+java -DDATABASE.URI=$database_uri -jar /datemo-0.1.2-standalone.jar
