@@ -106,9 +106,9 @@
   (testing "GET /latest tag filter parameter"
     (let [doc-specs
             [
-             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" ["tag1"]))
-             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" ["tag2"]))
-             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" ["tag1" "tag2"]))
+             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" [:tag1]))
+             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" [:tag2]))
+             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" [:tag1 :tag2]))
              ]
           tx (d/transact (get-conn) doc-specs)
           response1 (handler (request :get "/latest?tags=tag1"))
