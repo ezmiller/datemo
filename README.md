@@ -11,10 +11,10 @@ bin/run -m datomic.peer-server -p 8998 -a datemo,datemo -d datemo,datomic:mem://
 
 In order to get the dev db running, you need to run the following commands from the root of the datomic download package:
 
-1) Run transactor:
+1) Run transactor (from datomic directory):
 
 ```
-bin/transactor ~/datemo/resources/dev-transactor.properties
+bin/transactor /path/to/datemo/resources/dev-transactor.properties
 ```
 
 3) (optional) If you want the console:
