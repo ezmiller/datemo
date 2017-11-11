@@ -27,7 +27,7 @@
   (java.util.UUID/fromString uuid-str))
 
 (defn is-empty-metadata [entity]
-  (= :empty (:db/ident (pull-entity (:db/id entity)))))
+  (= :tag/none (:db/ident (pull-entity (:db/id entity)))))
 
 (defn get-title [metadata]
   (get-in-metadata :metadata/title metadata))
@@ -47,7 +47,7 @@
 
 (defn gen-tags-meta [tags]
   (if (empty? tags)
-    {:metadata/tags [:empty]}
+    {:metadata/tags [:tag/none]}
     {:metadata/tags (mapv #(array-map :tag/name (keyword (s/trim %))) tags)}))
 
 (defn get-updated-at
