@@ -39,11 +39,16 @@
       (:db/ident)
       (name)))
 
-(defn get-tags [metadata]
-  (def tags (get-in-metadata :metadata/tags metadata))
-  (if (or (nil? tags) (is-empty-metadata (first tags)))
-    []
-    (mapv #(name (:tag/name %)) tags)))
+(defn get-tags
+  ([metadata] (get-tags metadata true))
+  ([metadata return-strings?]
+    (def tags (get-in-metadata :metadata/tags metadata))
+    (if (or (nil? tags) (is-empty-metadata (first tags)))
+      []
+      (mapv #(if return-strings?
+               (name (:tag/name %))
+               (:tag/name %))
+            tags))))
 
 (defn gen-tags-meta [tags]
   (if (empty? tags)
@@ -131,8 +136,8 @@
 (defn filter-by-tags [res tags]
   (filterv
     (fn [r]
-      (let [metadata (-> (first r) (:arb/metadata) (first))
-            tagset (mapv #(:tag/name %) (:metadata/tags metadata))
+      (let [metadata (as-> (first r) x (:arb/metadata x) )
+            tagset (get-tags metadata false)
             tags-to-find (mapv #(keyword %) (if (vector? tags) tags [tags]))
             matched (filterv #(>= (.indexOf tagset %) 0) tags-to-find)]
         (> (count matched) 0)))
