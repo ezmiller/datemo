@@ -142,16 +142,19 @@ To deploy the cloud formation, you can do the following:
 
 1. Make sure you've updated the version in `project.clj`.
 2. Build the new jar files by doing: `lein ring uberjar`.
-3. Update the .jar file specified in the `Dockerfile`.
+3. Update the .jar file specified in the `Dockerfile` and in `docker-entrypoint.sh`.
 4. Build the new docker image:
     ```
     docker build --rm -t ezmiller/datemo:latest -t ezmiller/datemo:<version> .
     ```
 5. Push both latest and the new version to the Docker Hub:
     ```
-    docker push ezmiller/datemo:latest
+    docker push ezmiller/datemo:lates
     docker push ezmiller/datemo:<version>
     ```
-6. Now you can do `docker pull` of latest on server and redeploy stack.
+6. Now you can do `docker pull` of latest on server and redeploy stack. E.g.:
+```
+docker pull ezmiller/datemo:latest
+```
 
 
