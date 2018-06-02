@@ -1,0 +1,6 @@
+{:server-type :cloud
+ :region "us-east-2"
+ :system "datemo"
+ :query-group "datemo"
+ :endpoint "http://entry.datemo.us-east-2.datomic.net:8182/"
+ :proxy-port 8182}
