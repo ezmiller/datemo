@@ -12,7 +12,7 @@
             [ring.middleware.json :refer :all]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [ring.middleware.cors :refer [wrap-cors]]
-            [datomic.api :as d]
+            [datomic.client.api :as d]
             [datemo.db :as db]))
 
 (require '[clojure.pprint :refer [pprint]])
@@ -58,12 +58,12 @@
 (defn get-updated-at
   ([arb-id] (get-updated-at arb-id (db-now)))
   ([arb-id db]
-   (let [eid (db/get-eid [:arb/id arb-id])
-         [result error] (q-or-error '[:find (max ?t)
-                                      :in $ ?e
-                                      :where
-                                      [?e _ _ ?tx]
-                                      [?tx :db/txInstant ?t]] (d/history db) eid)]
+   (let [eid (get-arb-eid arb-id)
+        [result error] (q-or-error '[:find (max ?t)
+                                     :in $ ?e
+                                     :where
+                                     [?e _ _ ?tx]
+                                     [?tx :db/txInstant ?t]] (d/history db) eid)]
     (if (has-error error)
       nil
       (->> result (first) (first) (c/to-string))))))
@@ -204,9 +204,9 @@
     (if (is-empty-result found)
       {:status 404}
       (let [retractions (remove-arb-root found)
-            retract-tx (d/transact (get-conn) retractions)
-            update-tx (d/transact (get-conn) [update])
-            db-after (:db-after @update-tx)
+            retract-tx (d/transact (get-conn) {:tx-data retractions})
+            update-tx (d/transact (get-conn) {:tx-data [update]})
+            db-after (:db-after update-tx)
             doc (d/pull db-after '[*] entity-spec)
             doc-html (tx->html doc)]
         {:status 202
@@ -224,7 +224,7 @@
                             :html doc-html}}}))))
 
 (defn post-doc [doc-string doctype title tags]
-  (let [id (d/squuid)
+  (let [id (java.util.UUID/randomUUID)
         tx (-> (html->tx
                  (md-to-html-string doc-string)
                  {:metadata/title (or title "Untitled")}

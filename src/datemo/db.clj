@@ -1,27 +1,30 @@
 (ns datemo.db
-  (:import datomic.Util)
   (:require
-    [datomic.api :as d]
+    [datomic.client.api :as d]
     [clojure.java.io :as io]
     [environ.core :refer [env]]
     [clojure.pprint :as pp :refer (pprint)]))
 
-(defn read-all
-  "Read all forms in f, where f is any resource that can
-   be opened by io/reader"
-  [f]
-  (Util/readAll (io/reader f)))
+(def resource io/resource)
 
-(defn transact-all
-  "Load and run all transactions from f, where f is any
-   resource that can be opened by io/reader."
-  [conn f]
-  (loop [n 0
-         [tx & more] (read-all f)]
-    (if tx
-      (recur (+ n (count (:tx-data  @(d/transact conn tx))))
-             more)
-      {:datoms n})))
+(def not-nil? (complement nil?))
+
+(defn- read-one
+  [r]
+  (try
+    (read r)
+    (catch java.lang.RuntimeException e
+      (if (= "EOF while reading" (.getMessage e))
+        ::EOF
+        (throw e)))))
+
+(defn read-all
+  "Reads a sequence of top-level objects in file"
+  ;; Modified from Clojure Cookbook, L Vanderhart & R. Neufeld
+  [src]
+  (with-open [r (java.io.PushbackReader. (clojure.java.io/reader src))]
+    (binding [*read-eval* false]
+      (doall (take-while #(not= ::EOF %) (repeatedly #(read-one r)))))))
 
 (defn load-schema
   "Given a path string to a schema edn file, loads and returns."
@@ -30,41 +33,44 @@
       (read-all)
       (first)))
 
-(defn scratch-conn
-  "Create a connection to an anonymous, in-memory database. Returns
-   a tuple containing a connection object and the db-uri."
-  []
-  (let [uri (str "datomic:mem://" (d/squuid))]
-    ;; (println (str "Scratch db: " uri))
-    (d/delete-database uri)
-    (d/create-database uri)
-    [(d/connect uri) uri]))
+;; Initialize!
+
+(def db-atom (atom {:conn nil, :client nil, :cfg {}}))
+
+(defn read-cfg []
+   (read-string (slurp (resource "db-config.edn"))))
 
 (defn connect
-  ([] (scratch-conn))
-  ([db-uri]
-   (println (str "Connecting to db: " db-uri))
-   [(d/connect db-uri) db-uri]))
+  ([dbname] (connect dbname (:client @db-atom)))
+  ([dbname client]
+    (println (str "Connecting to datomic cloud db: " dbname))
+    (let [conn (d/connect client {:db-name dbname})]
+      (swap! db-atom assoc :conn conn))))
 
-;; Initailize!
-
-(def db-atom (atom {:conn nil, :db-uri ""}))
-
-(defn init-db
-  ([] (init-db false))
-  ([use-scratch-db]
-    (let [[conn db-uri] (if (= true use-scratch-db)
-                          (connect)
-                          (connect (env :database-uri)))]
-      (swap! db-atom assoc :conn conn :db-uri db-uri))))
+(defn init-client []
+  (let [cfg (read-cfg)
+        client (d/client cfg)]
+    (println (str "Connecting datomic cloud client to: " (:endpoint cfg)))
+    (swap! db-atom assoc :client client :cfg cfg)))
 
 ;; Helper functions
 
 (defn get-conn []
   (:conn @db-atom))
 
-(defn get-db-uri []
-  (:db-uri @db-atom))
+(defn get-client []
+  (:client @db-atom))
+
+(defn get-cfg []
+  (:cfg @db-atom))
+
+(defn create-db [name]
+  (println "Creating database:" name)
+  (d/create-database (get-client) {:db-name name}))
+
+(defn destroy-db [name]
+  (println "Deleting database:" name)
+  (d/create-database (get-client) {:db-name name}))
 
 (defn db-now []
   (d/db (:conn @db-atom)))
@@ -76,31 +82,29 @@
   "Attempts to transact a schema. If sucessful, returns tx promise;
    otherwise, error."
   [schema-tx conn]
-  (let [tx (d/transact conn schema-tx)]
-    (try @tx (catch Exception e (.getMessage e)))))
+  (let [tx (d/transact conn {:tx-data schema-tx})]
+    (try tx (catch Exception e (.getMessage e)))))
 
 (defn transact-or-error [tx]
-  (try [@(d/transact (get-conn) tx) nil]
+  (try [(d/transact (get-conn) {:tx-data tx}) nil]
        (catch Exception e
          [nil (.getMessage e)])))
 
 (defn retract-entity [entity-spec]
-  [:db.fn/retractEntity entity-spec])
+  [:db/retractEntity entity-spec])
 
 (defn retract-value [entity-spec attribute value]
   [:db/retract entity-spec attribute value])
 
-(defn add-entity [partition attr-val-map]
-  ([attr-val-map]
-   (add-entity :db.part/user attr-val-map))
-  ([partition attr-val-map]
-   (into {:db/id (d/tempid partition)} attr-val-map)))
+;; (defn add-entity [partition attr-val-map]
+;;   ([attr-val-map]
+;;    (add-entity :db.part/user attr-val-map))
+;;   ([partition attr-val-map]
+;;    (into {:db/id (d/tempid partition)} attr-val-map)))
 
 (defn add-value [entity-spec attribute value]
   [:db/add entity-spec attribute value])
 
-(defn get-eid [entity-spec]
-  (:db/id (d/entity (db-now) entity-spec)))
 
 ;: Pull
 
@@ -117,9 +121,16 @@
 ;; Querys
 
 (defn q-or-error
-  ([query](q-or-error query (db-now)))
-  ([query & inputs]
-  (try [(apply d/q query inputs) nil]
-       (catch Exception e
-         [nil (.getMessage e)]))))
+  ([query] (q-or-error query (db-now)))
+  ([query & args]
+   (try [(d/q {:query query :args args}) nil]
+        (catch Exception e
+          [nil (.getMessage e)]))))
 
+(defn get-arb-eid
+  ([arb-id] (get-arb-eid arb-id (db-now)))
+  ([arb-id args]
+   (let [[r error] (q-or-error `[:find ?e :where [?e :arb/id ~arb-id]] args)]
+     (if (not-nil? error)
+       nil
+       (first (first r))))))

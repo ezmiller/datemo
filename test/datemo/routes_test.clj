@@ -2,7 +2,7 @@
   (:require [cheshire.core :as json :refer [parse-string]]
             [clj-time.core :as t]
             [clj-time.coerce :as c]
-            [datomic.api :as d])
+            [datomic.client.api :as d])
   (:use clojure.test
         ring.mock.request
         markdown.core
@@ -14,12 +14,16 @@
 
 ;; Install arb schema in scratch db.
 (defn db-prep [f]
-  (if (not (= "" (get-db-uri)))
-    (d/delete-database (get-db-uri)))
-  (init-db true)
-  (-> (load-schema "schemas/arb.edn")
-      (install-schema (get-conn)))
-  (f))
+  (let [dbname (str "test-" (java.util.UUID/randomUUID))]
+    (init-client)
+    ;; (if nil? (get-client)
+    ;;   (init-client))
+    (create-db dbname)
+    (connect dbname)
+    (-> (load-schema "schemas/arb.edn")
+        (install-schema (get-conn)))
+    (f)
+    (destroy-db dbname)))
 
 (use-fixtures :each db-prep)
 
@@ -38,6 +42,8 @@
                    :metadata/tags (mapv #(array-map :tag/name (keyword %)) tags)
                    :metadata/doctype (keyword "doctype" doctype)}}])
 
+;; Tests
+
 (deftest test-get-root
   (testing "GET /"
     (let [response (handler (request :get "/"))]
@@ -47,11 +53,11 @@
 
 (deftest test-get-latest
   (testing "GET /latest?page=1 with one note in db"
-    (let [id (d/squuid)
+    (let [id (java.util.UUID/randomUUID)
           url (str "/latest?page=1")
           doc (doc-tx-spec id "A title" "note" :p "note1" ["tag1"])
-          tx (d/transact (get-conn) doc)
-          [_ _ tx-inst] (first (:tx-data @tx))
+          tx (d/transact (get-conn) {:tx-data doc})
+          [_ _ tx-inst] (first (:tx-data tx))
           response (handler (request :get url))]
       (is (= {:_links {:self {:href "/latest"}}
               :_embedded [{:_links {:self {:href (apply str "/documents/" (str id))}}
@@ -80,18 +86,18 @@
 
   (testing "GET /latest?page=2 with 50 notes in db"
     (let [url "/latest?page=2"
-          ids (mapv (fn [x] (d/squuid)) (range 50))
+          ids (mapv (fn [x] (java.util.UUID/randomUUID)) (range 50))
           doc-specs (mapv #(first (doc-tx-spec % "A title" "note" :p "test" [])) ids)
-          tx (d/transact (get-conn) doc-specs)
+          tx (d/transact (get-conn) {:tx-data doc-specs})
           response (handler (request :get url))]
       (is (= 200 (:status response)))
       (is (= 20 (->> (parse response) (:_embedded) (count))))))
 
   (testing "GET /latest doctype parameter"
     (let [url "/latest?doctype=essay"
-          ids (mapv (fn [x] (d/squuid)) (range 5))
+          ids (mapv (fn [x] (java.util.UUID/randomUUID)) (range 5))
           doc-specs (mapv #(first (doc-tx-spec % "A title" "essay" :p "test" [])) ids)
-          tx (d/transact (get-conn) doc-specs)
+          tx (d/transact (get-conn) {:tx-data doc-specs})
           response (handler (request :get url))]
       (is (= 5
              (->> (parse response) (:_embedded) (count))))))
@@ -106,11 +112,11 @@
   (testing "GET /latest tag filter parameter"
     (let [doc-specs
             [
-             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" [:tag1]))
-             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" [:tag2]))
-             (first (doc-tx-spec (d/squuid) "A title" "essay" :p "test" [:tag1 :tag2]))
+             (first (doc-tx-spec (java.util.UUID/randomUUID) "A title" "essay" :p "test" [:tag1]))
+             (first (doc-tx-spec (java.util.UUID/randomUUID) "A title" "essay" :p "test" [:tag2]))
+             (first (doc-tx-spec (java.util.UUID/randomUUID) "A title" "essay" :p "test" [:tag1 :tag2]))
              ]
-          tx (d/transact (get-conn) doc-specs)
+          tx (d/transact (get-conn) {:tx-data doc-specs})
           response1 (handler (request :get "/latest?tags=tag1"))
           response2 (handler (request :get "/latest?tags=tag2"))
           response3 (handler (request :get "/latest?tags=tag1&tags=tag2"))
@@ -123,15 +129,15 @@
 
 (deftest test-get-document-by-id
   (testing "GET /documents/:id"
-    (def id (d/squuid))
+    (def id (java.util.UUID/randomUUID))
     (def tx-spec [{:arb/id id
                    :arb/value {:content/text "test"}
                    :arb/metadata {:metadata/html-tag :p
                                   :metadata/doctype :doctype/note
                                   :metadata/tags [{:tag/name :tag1}]
                                   :metadata/title "A title"}}])
-    (let [tx (d/transact (get-conn) tx-spec)
-          [_ _ tx-inst] (first (:tx-data @tx))
+    (let [tx (d/transact (get-conn) {:tx-data tx-spec})
+          [_ _ tx-inst] (first (:tx-data tx))
           response (handler (request :get (str "/documents/" id)))]
       (is (= 200 (:status response)))
       (is (= {:_links {:self {:href (str "/documents/" id) } }
@@ -146,14 +152,14 @@
 
 (deftest test-put-document
     (testing "with single node doc"
-      (let [id (d/squuid)
+      (let [id (java.util.UUID/randomUUID)
             tx-spec (doc-tx-spec id "A title" "note" :div "test" ["tag1"])
             data {:doc-string "replaced"
                   :title "A new title"
                   :doctype "essay"
                   :tags ["tag2"]}
-            tx-result (d/transact (get-conn) tx-spec)
-            [_ _ tx-inst] (first (:tx-data @tx-result))
+            tx-result (d/transact (get-conn) {:tx-data tx-spec})
+            [_ _ tx-inst] (first (:tx-data tx-result))
             response (handler (prep-request :put (str "/documents/" id) data))
             body (parse response)]
         (is (= 202 (:status response)))

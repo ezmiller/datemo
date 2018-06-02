@@ -3,18 +3,18 @@
   :url "https://github.com/ezmiller/datemo"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :exclusions [[commons-codec]]
+  ;; :exclusions [commons-codec]
   :repositories {"my.datomic.com" {:url "https://my.datomic.com/repo"
                                    :creds :gpg}}
   :dependencies [[clj-time "0.13.0"]
-                 [commons-codec "1.6"]
+                 [commons-codec "1.10"]
                  [org.clojure/clojure "1.9.0"]
-                 [org.clojure/core.async "0.2.395"]
-                 [com.datomic/datomic-pro "0.9.5544"]
-                 [com.amazonaws/aws-java-sdk-dynamodb "1.11.6"]
+                 [org.clojure/core.async "0.4.474"]
+                 [com.datomic/client-cloud "0.8.50"]
                  [environ "1.1.0"]
                  [cheshire "5.7.0"]
-                 [ring "1.5.1"]
+                 [ring "1.6.3"
+                  :exclusions [ring/ring-jetty-adapter]]
                  [ring/ring-defaults "0.2.3"]
                  [ring/ring-json "0.4.0"]
                  [ring-cors "0.1.9"]
@@ -31,12 +31,12 @@
                  :port 9998}}
   :test-paths ["test"]
   :profiles
-  {:production {:env {:port 8080}
+  {:production {:env {:db-name "production"}
                 :dependencies [[javax.serverlet/servlet-api "2.5"]
                                [ring/ring-mock "0.3.0"]]}
-   :dev {:env {:database-uri "datomic:dev://localhost:4334/datemo"}
+   :dev {:env {:db-name "development"}
          :dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.0"]]}
-   :test {:env {:testing "true"}
+   :test {:env {:db-name "test"}
           :dependencies [[javax.servlet/servlet-api "2.5"]
                          [ring/ring-mock "0.3.0"]]}})
