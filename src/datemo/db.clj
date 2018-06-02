@@ -96,12 +96,6 @@
 (defn retract-value [entity-spec attribute value]
   [:db/retract entity-spec attribute value])
 
-;; (defn add-entity [partition attr-val-map]
-;;   ([attr-val-map]
-;;    (add-entity :db.part/user attr-val-map))
-;;   ([partition attr-val-map]
-;;    (into {:db/id (d/tempid partition)} attr-val-map)))
-
 (defn add-value [entity-spec attribute value]
   [:db/add entity-spec attribute value])
 
