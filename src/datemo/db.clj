@@ -2,12 +2,13 @@
   (:require
     [datomic.client.api :as d]
     [clojure.java.io :as io]
-    [environ.core :refer [env]]
     [clojure.pprint :as pp :refer (pprint)]))
 
 (def resource io/resource)
 
 (def not-nil? (complement nil?))
+
+(def db-atom (atom {:conn nil, :client nil, :cfg {}}))
 
 (defn- read-one
   [r]
@@ -33,10 +34,6 @@
       (read-all)
       (first)))
 
-;; Initialize!
-
-(def db-atom (atom {:conn nil, :client nil, :cfg {}}))
-
 (defn read-cfg []
    (read-string (slurp (resource "db-config.edn"))))
 
@@ -48,6 +45,7 @@
       (swap! db-atom assoc :conn conn))))
 
 (defn init-client []
+  (println "Starting init...")
   (let [cfg (read-cfg)
         client (d/client cfg)]
     (println (str "Connecting datomic cloud client to: " (:endpoint cfg)))
@@ -70,10 +68,14 @@
 
 (defn destroy-db [name]
   (println "Deleting database:" name)
-  (d/create-database (get-client) {:db-name name}))
+  (d/delete-database (get-client) {:db-name name}))
 
 (defn db-now []
   (d/db (:conn @db-atom)))
+
+(defn db-exists [name]
+  (let [dbs (d/list-databases (get-client) {})]
+    (if (nil? (some #(= % name) dbs)) false true)))
 
 (defn hist-db-now []
   (d/db (:conn @db-atom)))
