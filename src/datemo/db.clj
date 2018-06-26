@@ -44,12 +44,22 @@
     (let [conn (d/connect client {:db-name dbname})]
       (swap! db-atom assoc :conn conn))))
 
+(defn connect-client [cfg]
+  (try [(d/client cfg) nil]
+       (catch Exception e (str "Failed to connect to datomic client: " e))))
+
 (defn init-client []
   (println "Starting init...")
   (let [cfg (read-cfg)
-        client (d/client cfg)]
+        [client err] (connect-client cfg)]
     (println (str "Connecting datomic cloud client to: " (:endpoint cfg)))
-    (swap! db-atom assoc :client client :cfg cfg)))
+    (if (nil? err)
+      (do
+        (swap! db-atom assoc :client client :cfg cfg)
+        true)
+      (do
+        (println "Failed to initialize the datomic client. Is the socks proxy running?")
+        false))))
 
 ;; Helper functions
 

@@ -18,6 +18,7 @@
 
 (defn init []
   (println (apply str "Initializing datemo version: " (:datemo-version env)))
-  (db/init-client)
-  (if (not (:testing env))
-    (prep-db (:db-name env))))
+  (let [initialized? (db/init-client)]
+    (if initialized?
+      (if (not (:testing env)) (prep-db (:db-name env)))
+      (throw (Exception. "Failed to initalize!")))))
