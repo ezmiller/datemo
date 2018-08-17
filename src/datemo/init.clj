@@ -6,6 +6,7 @@
 (require '[clojure.pprint :refer [pprint]])
 
 (defn prep-db [name]
+  {:pre [(not (nil? name))]}
   (println "Database `" name "` exists?: " (db/db-exists name))
   (if (db/db-exists name)
     (db/connect name)
