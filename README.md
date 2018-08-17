@@ -2,51 +2,24 @@
 
 ## Getting Datomic Server Running
 
-In order to run a simple database for experimental develpoment, where it isn't
-necessary to persist the data, do this:
+1. Datemo relies on [Datomic Cloud](https://docs.datomic.com/cloud/index.html). In order to run in
+even in development you will need to have set up a Datomic Cloud instance (see [here](https://docs.datomic.com/cloud/setting-up.html)).
 
+2. Once you have a Datomic Cloud instance setup on AWS, you will need to run the SOCKS proxy. The script provided by
+Datomic is located in the root directory of this repository. Run it as follows:
 ```
-bin/run -m datomic.peer-server -p 8998 -a datemo,datemo -d datemo,datomic:mem://datemo
-```
-
-In order to get the dev db running, you need to run the following commands from the root of the datomic download package:
-
-1) Run transactor (from datomic directory):
-
-```
-bin/transactor /path/to/datemo/resources/dev-transactor.properties
+./datomic-socks-proxy -p <aws-region> <datomic cloud stack name>
 ```
 
-3) (optional) If you want the console:
+3. Now that the Datomic database should be reachable, you can start the datemo server:
+
 ```
-bin/console -p 8080 datemo datomic:dev://localhost:4334/datemo
+lein ring server <port-number>
 ```
 
-4) (optional) If you want to use the repl to access the db:
+4. (optional) If you want to use the repl to access the db:
 ```
 rlwrap bin/repl
-```
-
-To run the server do:
-
-```
-lein ring server <desired-port-#>
-```
-
-Note: You can also run in dev and connect to a transactor on AWS by replacing the database URI
-for dev in the project.clj. This is also useful for updating the schema on an AWS deployed DB:
-
-1) Change the database URI in project.clj
-2) Run the repl with `lein repl`
-3) Do the following in the repl:
-```
-(use 'datemo.db)
-(require '[datomic.api :as d])
-(d/delete-database "<database-uri>")
-(d/create-database "<database-uri>")
-(init-db)
-(-> (load-schema "schemas/arb.edn")
-    (install-schema (get-conn)))
 ```
 
 ## To run Datemo to test Production
@@ -60,7 +33,7 @@ lein ring uberjar
 
 2) Run the following command, adding the AWS keys:
 ```
-java -Ddatabase.uri="datomic:ddb://us-east-1/datemo/datemo?aws_access_key_id=<fill-in-key>&aws_secret_key=<fill-in-key>" -jar target/datemo-<version#>-standalone.jar
+java -Ddatabase.db-name="production" -jar target/datemo-<version#>-standalone.jar
 ```
 
 ## Notes on Deployment
