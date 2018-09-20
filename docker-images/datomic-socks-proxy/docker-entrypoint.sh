@@ -18,5 +18,13 @@ cat > ~/.aws/config << EOF
 region = us-east-2
 EOF
 
+# Hack to prevent ssh from trying to check host keys when the
+# datomic SOCKS script runs. I think this is okay.
+mkdir /root/.ssh
+cat > /root/.ssh/config << EOF
+Host *
+StrictHostKeyChecking no
+EOF
+
 echo "Starting Datomic SOCKS proxy..."
 ./datomic-socks-proxy -p default --port $PORT $CLOUD_STACK_NAME
