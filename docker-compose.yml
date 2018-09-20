@@ -1,15 +1,33 @@
 version: "3.1"
 
+secrets:
+  aws_access_key:
+    external: true
+  aws_secret_access_key:
+    external: true
+
 services:
   web:
     image: ezmiller/datemo-nginx-proxy:latest
     ports:
       - "80:80"
 
+  datomic-socks-proxy:
+    image: ezmiller/datomic-socks-proxy
+    ports:
+      - 8182:8182
+    environment:
+      - CLOUD_STACK_NAME=datemo
+      - PORT=8182
+    secrets:
+      - aws_access_key
+      - aws_secret_access_key
+
   datemo:
     image: ezmiller/datemo:latest
     depends_on:
       - web
+      - datomic-socks-proxy
     ports:
       - "8080:8080"
     environment:
