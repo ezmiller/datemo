@@ -13,5 +13,5 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - VIRTUAL_HOST=104.131.119.148
+      - VIRTUAL_HOST=159.203.79.140
 
