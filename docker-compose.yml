@@ -1,11 +1,5 @@
 version: "3.1"
 
-secrets:
-  aws_access_key:
-    external: true
-  aws_secret_access_key:
-    external: true
-
 services:
   web:
     image: ezmiller/datemo-nginx-proxy:latest
@@ -19,9 +13,5 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATEMO_DB_URI=datomic:ddb://us-east-1/datemo/datemo
       - VIRTUAL_HOST=54.145.19.85
-    secrets:
-      - aws_access_key
-      - aws_secret_access_key
 

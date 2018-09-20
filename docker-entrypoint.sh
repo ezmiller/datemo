@@ -1,11 +1,7 @@
 #!/bin/bash
 
-echo "Reading secrets..."
-read -d $'\x04' aws_access_key < "/run/secrets/aws_access_key"
-read -d $'\x04' aws_secret_access_key < "/run/secrets/aws_secret_access_key"
-echo "Done"
-
-database_uri="$DATEMO_DB_URI?aws_access_key_id=$aws_access_key&aws_secret_key=$aws_secret_access_key"
+echo "Running datomic SOCKS proxy..."
+./datomic-socks-proxy -p us-east-2 datemo &
 
 echo "Starting datemo..."
-java -DDATABASE.URI=$database_uri -jar /datemo-0.1.3-standalone.jar
+java -Ddatabase.db-name="production" -jar target/datemo-0.2-standalone.jar
