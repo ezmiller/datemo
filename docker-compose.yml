@@ -17,7 +17,6 @@ services:
     ports:
       - "8182:8182"
     environment:
-      - CLOUD_STACK_NAME=datemo
       - PORT=8182
     secrets:
       - aws_access_key
@@ -30,6 +29,4 @@ services:
       - datomic-socks-proxy
     ports:
       - "8080:8080"
-    environment:
-      - VIRTUAL_HOST=159.203.79.140
 
