@@ -13,7 +13,7 @@ services:
       - "80:80"
 
   datomic-socks-proxy:
-    image: ezmiller/datomic-socks-proxy
+    image: ezmiller/datomic-socks-proxy:latest
     ports:
       - 8182:8182
     environment:
