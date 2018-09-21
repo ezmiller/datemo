@@ -15,7 +15,7 @@ services:
   datomic-socks-proxy:
     image: ezmiller/datomic-socks-proxy:latest
     ports:
-      - 8182:8182
+      - "8182:8182"
     environment:
       - CLOUD_STACK_NAME=datemo
       - PORT=8182
