@@ -1,8 +1,18 @@
 {:deps
- {org.clojure/data.csv {:mvn/version "0.1.4"}
-  org.clojure/data.json {:mvn/version "0.2.6"}
-  org.clojure/data.generators {:mvn/version "0.1.2"}
-  org.clojure/clojure {:mvn/version "1.9.0-beta2"}
-  com.datomic/client-cloud {:mvn/version "0.8.50"}
-  seesaw/seesaw {:mvn/version "1.4.5"}}
- :paths ["src" "tutorial" "doc-examples" "resources"]}
+ {org.clojure/clojure {:mvn/version "1.9.0"}
+  org.clojure/core.async {:mvn/version "0.4.474"}
+  com.datomic/client-cloud {:mvn/version "0.8.52"}
+  org.eclipse.jetty/jetty-server {:mvn/version "9.3.7.v20160115"}
+  ;; clj-time {:mvn/version "0.4.4"}
+  commons-codec {:mvn/version "1.11"}
+  environ {:mvn/version "1.1.0"}
+  cheshire {:mvn/version "5.8.0"}
+  ring {:mvn/version "1.7.0-RC1"}
+  ring/ring-defaults {:mvn/version "0.2.3"}
+  ring/ring-json {:mvn/version "0.4.0"}
+  ring-cors {:mvn/version "0.1.9"}
+  compojure {:mvn/version "1.6.1"}
+  hickory {:mvn/version "0.7.0"}
+  markdown-clj {:mvn/version "0.9.94"}
+  javax.servlet/servlet-api {:mvn/version "2.5"}
+  ring/ring-mock {:mvn/version "0.3.2"}}}
