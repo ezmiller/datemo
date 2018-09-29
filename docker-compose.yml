@@ -12,22 +12,16 @@ services:
     ports:
       - "80:80"
 
-  datomic-socks-proxy:
-    image: ezmiller/datomic-socks-proxy:latest
-    ports:
-      - "8182:8182"
-    environment:
-      - CLOUD_STACK_NAME=datemo
-      - PORT=8182
-    secrets:
-      - aws_access_key
-      - aws_secret_access_key
-
   datemo:
     image: ezmiller/datemo:latest
+    environment:
+      - DATOMIC_CLOUD_STACK_NAME=datemo
     depends_on:
       - web
       - datomic-socks-proxy
     ports:
       - "8080:8080"
+    secrets:
+      - aws_access_key
+      - aws_secret_access_key
 
