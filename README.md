@@ -48,7 +48,13 @@ using Docker.
 The Datemo server is currently deployed using the a Docker stack. See the `docker-compose.yml` file
 in the project root for the configuration. 
 
-To start the stack do:
+To start the stack you first need to set up the swarm, if it is not already initialized:
+
+```
+docker swarm init --advertise-addr "<ip of host>"
+```
+
+Then to run the containers on the stack, we can use the config specified in `docker-compose.yml`:
 
 ```
 docker stack up -c docker-compose.yml datemo
