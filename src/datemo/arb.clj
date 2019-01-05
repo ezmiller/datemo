@@ -3,7 +3,7 @@
   (:use hickory.core
         hiccup.core))
 
-(defn is-arb [coll]
+(defn arb? [coll]
   (and
     (instance? clojure.lang.PersistentArrayMap coll)
     (contains? coll :arb/value)))
@@ -72,7 +72,7 @@
             [:arb {:original-tag (:metadata/html-tag (first metadata))}]
             arbs)
           (recur
-            (conj arbs (if-not (is-arb (first items))
+            (conj arbs (if-not (arb? (first items))
                          (:content/text (first items)) ;; If it's not an arb it must be a :content/text
                          (tx->arb (first items)))) (next items)))))))
 
