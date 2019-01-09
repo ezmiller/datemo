@@ -11,6 +11,28 @@
 (defn get-in-metadata [k metadata]
   (k (first (filter #(k %) metadata))))
 
+(defn walk-arb-fn [wrap-node process-node]
+  (fn walk [arb]
+    (let [[_ metadata & nodes] arb]
+      (wrap-node
+       metadata
+       (apply vector (for [node nodes]
+                       (if (or (string? node) (nil? node))
+                         (process-node node)
+                         (walk node))))))))
+
+(defn arb->tx [arb]
+  (let [process-node #(hash-map :content/text %)
+        wrap-node #(hash-map
+                    :arb/metadata [{:metadata/html-tag (:original-tag %1)}]
+                    :arb/value %2)
+        convert (walk-arb-fn wrap-node process-node)]
+    (convert arb)))
+
+(defn html->tx [html & metadata]
+  (let [tx (-> html (html->arb) (arb->tx))]
+    (assoc tx :arb/metadata (into (:arb/metadata tx) metadata))))
+
 (defn html->hiccup
   ([html] (as-hiccup (parse html)))
   ([html as-fragment]
@@ -39,26 +61,11 @@
     (hiccup->arb (html->hiccup html)))
     (hiccup->arb (html->hiccup html as-fragment))))
 
-(defn arb->tx [arb]
-  (let [[arb-tag metadata & value] arb]
-    (if (and
-          (= 1 (count value))
-          (or (string? (first value)) (nil? (first value))))
-      {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
-       :arb/value [{:content/text (first value)}]}
-      (loop [values []
-             items value]
-        (def new-val (if (string? (first items))
-                       {:content/text (first items)}
-                       (arb->tx (first items))))
-        (if (= 1 (count items))
-          {:arb/metadata [{:metadata/html-tag (metadata :original-tag)}]
-           :arb/value (conj values new-val)}
-          (recur (conj values new-val) (next items)))))))
-
-(defn html->tx [html & metadata]
-  (let [tx (-> html (html->arb) (arb->tx))]
-    (assoc tx :arb/metadata (into (:arb/metadata tx) metadata))))
+(defn arb->hiccup [arb]
+  (let [proccess-node #(identity %)
+        wrap-node #(vec (concat [(:original-tag %1) {}] %2))
+        convert (walk-arb-fn wrap-node proccess-node)]
+    (convert arb)))
 
 (defn tx->arb [tx]
   (let [{metadata :arb/metadata value :arb/value} tx]
@@ -75,19 +82,6 @@
             (conj arbs (if-not (arb? (first items))
                          (:content/text (first items)) ;; If it's not an arb it must be a :content/text
                          (tx->arb (first items)))) (next items)))))))
-
-(defn arb->hiccup [arb]
-  (let [[arb-tag metadata & value] arb]
-    (if (and (string? (first value)) (= 1 (count value)))
-      [(:original-tag metadata) {} (first value)]
-      (loop [hiccups [], items value]
-        (if (= 0 (count items))
-          (into [(:original-tag metadata) {}] hiccups)
-          (if (string? (first items))
-            (recur (conj hiccups (first items)) (next items))
-            (recur
-              (conj hiccups (arb->hiccup (first items)))
-              (next items))))))))
 
 (defn tx->html [tx]
   (-> tx (tx->arb) (arb->hiccup) (html)))
