@@ -5,7 +5,9 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   ;; :pedantic? :warn
   :middleware [lein-tools-deps.plugin/resolve-dependencies-with-deps-edn]
-  :plugins [[lein-tools-deps "0.4.1"]
+  :plugins [[cider/cider-nrepl "0.19.0"]
+            [refactor-nrepl "2.4.0"]
+            [lein-tools-deps "0.4.1"]
             [lein-ring "0.12.4"]
             [lein-environ "1.1.0"]
             [lein-pprint "1.1.2"]
@@ -13,7 +15,8 @@
             [com.jakemccrary/lein-test-refresh "0.18.1"]]
   ;; Need clj-time declared here or get an error. I think the package is used
   ;; in the middleware.
-  :dependencies [[clj-time "0.4.4"]]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [clj-time "0.4.4"]]
   :lein-tools-deps/config {:config-files ["./deps.edn"]}
   :ring {:init datemo.init/init
          :handler datemo.routes/handler

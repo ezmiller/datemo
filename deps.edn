@@ -1,9 +1,12 @@
 {:deps
- {org.clojure/clojure {:mvn/version "1.9.0"}
-  org.clojure/core.async {:mvn/version "0.4.474"}
-  com.datomic/client-cloud {:mvn/version "0.8.52"}
+ {
+  ;; needed to be placed on project.clj -> clj-time {:mvn/version "0.4.4"} 
+  alembic {:mvn/version "0.3.2"}
   org.eclipse.jetty/jetty-server {:mvn/version "9.3.7.v20160115"}
-  ;; clj-time {:mvn/version "0.4.4"}
+  org.clojure/clojure {:mvn/version "1.9.0"}
+  org.clojure/core.async {:mvn/version "0.4.474"}
+  org.clojure/tools.nrepl {:mvn/version "0.2.13"}
+  com.datomic/client-cloud {:mvn/version "0.8.52"}
   commons-codec {:mvn/version "1.11"}
   environ {:mvn/version "1.1.0"}
   cheshire {:mvn/version "5.8.0"}
