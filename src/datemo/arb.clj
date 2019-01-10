@@ -11,6 +11,29 @@
 (defn get-in-metadata [k metadata]
   (k (first (filter #(k %) metadata))))
 
+(defn walk-tx-fn [wrap-node process-node]
+  (fn walk [tx]
+    (let [{metadata :arb/metadata, nodes :arb/value} tx]
+      (clojure.pprint/pprint {:metadata metadata, :nodes nodes})
+      (wrap-node
+       metadata
+       (apply vector (for [node nodes]
+                       (if (:content/text node)
+                         (process-node node)
+                         (walk node))))))))
+
+(defn tx->html [tx]
+  (-> tx (tx->arb) (arb->hiccup) (html)))
+
+(defn tx->arb [tx]
+  (let [process-node #(:content/text %)
+        wrap-node    #(vec
+                       (concat
+                        [:arb {:original-tag (get-in-metadata :metadata/html-tag %1)}]
+                        %2))
+        convert      (walk-tx-fn wrap-node process-node)]
+    (convert tx)))
+
 (defn walk-arb-fn [wrap-node process-node]
   (fn walk [arb]
     (let [[_ metadata & nodes] arb]
@@ -35,16 +58,6 @@
         convert (walk-arb-fn wrap-node proccess-node)]
     (convert arb)))
 
-(defn html->hiccup
-  ([html] (as-hiccup (parse html)))
-  ([html as-fragment]
-   (if (false? as-fragment)
-     (html->hiccup html)
-     (let [result (map as-hiccup (parse-fragment html))]
-       (if (not= 1 (count result))
-         (into [:div {}] result)
-         (first result))))))
-
 (defn hiccup->arb [hiccup]
   (let [[tag attrs & value] hiccup]
     (if (or (nil? value) (and (= 1 (count value) (string? (first value)))))
@@ -56,6 +69,16 @@
             (recur (conj values (first items)) (next items))
             (recur (conj values (hiccup->arb (first items))) (next items))))))))
 
+(defn html->hiccup
+  ([html] (as-hiccup (parse html)))
+  ([html as-fragment]
+   (if (false? as-fragment)
+     (html->hiccup html)
+     (let [result (map as-hiccup (parse-fragment html))]
+       (if (not= 1 (count result))
+         (into [:div {}] result)
+         (first result))))))
+
 (defn html->arb
   ([html] (html->arb html true))
   ([html as-fragment]
@@ -63,25 +86,7 @@
     (hiccup->arb (html->hiccup html)))
     (hiccup->arb (html->hiccup html as-fragment))))
 
-(defn tx->arb [tx]
-  (let [{metadata :arb/metadata value :arb/value} tx]
-    (if (and (= 1 (count value)) (not (nil? (:content/text (first value)))))
-      [:arb
-       {:original-tag (get-in-metadata :metadata/html-tag metadata)}
-       (:content/text (first value))]
-      (loop [arbs [], items value]
-        (if (= 0 (count items))
-          (into
-            [:arb {:original-tag (:metadata/html-tag (first metadata))}]
-            arbs)
-          (recur
-            (conj arbs (if-not (arb? (first items))
-                         (:content/text (first items)) ;; If it's not an arb it must be a :content/text
-                         (tx->arb (first items)))) (next items)))))))
-
 (defn html->tx [html & metadata]
   (let [tx (-> html (html->arb) (arb->tx))]
     (assoc tx :arb/metadata (into (:arb/metadata tx) metadata))))
 
-(defn tx->html [tx]
-  (-> tx (tx->arb) (arb->hiccup) (html)))
