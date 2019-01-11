@@ -11,29 +11,6 @@
 (defn get-in-metadata [k metadata]
   (k (first (filter #(k %) metadata))))
 
-(defn walk-tx-fn [wrap-node process-node]
-  (fn walk [tx]
-    (let [{metadata :arb/metadata, nodes :arb/value} tx]
-      (clojure.pprint/pprint {:metadata metadata, :nodes nodes})
-      (wrap-node
-       metadata
-       (apply vector (for [node nodes]
-                       (if (:content/text node)
-                         (process-node node)
-                         (walk node))))))))
-
-(defn tx->html [tx]
-  (-> tx (tx->arb) (arb->hiccup) (html)))
-
-(defn tx->arb [tx]
-  (let [process-node #(:content/text %)
-        wrap-node    #(vec
-                       (concat
-                        [:arb {:original-tag (get-in-metadata :metadata/html-tag %1)}]
-                        %2))
-        convert      (walk-tx-fn wrap-node process-node)]
-    (convert tx)))
-
 (defn walk-arb-fn [wrap-node process-node]
   (fn walk [arb]
     (let [[_ metadata & nodes] arb]
@@ -57,6 +34,44 @@
         wrap-node #(vec (concat [(:original-tag %1) {}] %2))
         convert (walk-arb-fn wrap-node proccess-node)]
     (convert arb)))
+
+(defn walk-hiccup-fn [wrap-node process-node]
+  (fn walk [hiccup]
+    (let [[tag _ & nodes] hiccup]
+      (wrap-node tag
+                 (apply vector (for [node nodes]
+                                 (if (string? node)
+                                   (process-node node)
+                                   (walk node))))))))
+
+(defn hiccup->arb [hiccup]
+  (let [process-node #(identity %)
+        wrap-node    #(vec (concat [:arb {:original-tag %1}] %2))
+        convert      (walk-hiccup-fn wrap-node process-node)]
+    (convert hiccup)))
+
+(defn walk-tx-fn [wrap-node process-node]
+  (fn walk [tx]
+    (let [{metadata :arb/metadata, nodes :arb/value} tx]
+      (clojure.pprint/pprint {:metadata metadata, :nodes nodes})
+      (wrap-node
+       metadata
+       (apply vector (for [node nodes]
+                       (if (:content/text node)
+                         (process-node node)
+                         (walk node))))))))
+
+(defn tx->arb [tx]
+  (let [process-node #(:content/text %)
+        wrap-node    #(vec
+                       (concat
+                        [:arb {:original-tag (get-in-metadata :metadata/html-tag %1)}]
+                        %2))
+        convert      (walk-tx-fn wrap-node process-node)]
+    (convert tx)))
+
+(defn tx->html [tx]
+  (-> tx (tx->arb) (arb->hiccup) (html)))
 
 (defn hiccup->arb [hiccup]
   (let [[tag attrs & value] hiccup]
